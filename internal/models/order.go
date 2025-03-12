@@ -1,7 +1,7 @@
 package models
 
 import (
-	"database/sql"
+	"fmt"
 	"go_module/internal/database"
 	"time"
 )
@@ -32,7 +32,7 @@ func CreateOrder(userID int64, shippingAddress, paymentMethod string) (*Order, e
 	// Start transaction
 	tx, err := database.DB.Begin()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to start transaction: %v", err)
 	}
 	defer func() {
 		if err != nil {
@@ -43,67 +43,39 @@ func CreateOrder(userID int64, shippingAddress, paymentMethod string) (*Order, e
 	// Get cart
 	cart, err := GetCartByUserID(userID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get cart: %v", err)
 	}
 
 	// Check if cart is empty
 	if len(cart.Items) == 0 {
-		return nil, sql.ErrNoRows
+		return nil, fmt.Errorf("cart is empty")
 	}
 
-	// Create shipping address record
-	var addressID int64
-	result, err := tx.Exec(
-		"INSERT INTO shipping_addresses (UserID, Address) VALUES (?, ?)",
-		userID, shippingAddress,
-	)
-	if err != nil {
-		return nil, err
-	}
-	addressID, err = result.LastInsertId()
-	if err != nil {
-		return nil, err
-	}
-
-	// Create payment method record
-	var paymentID int64
-	result, err = tx.Exec(
-		"INSERT INTO payment_methods (Name) VALUES (?)",
-		paymentMethod,
-	)
-	if err != nil {
-		return nil, err
-	}
-	paymentID, err = result.LastInsertId()
-	if err != nil {
-		return nil, err
-	}
-
-	// Create order
-	result, err = tx.Exec(`
+	// Create order directly with shipping address and payment method
+	result, err := tx.Exec(`
 		INSERT INTO orders (
-			UserID, ShippingAddressID, PaymentMethodID, 
-			OrderDate, TotalAmount, Status, PaymentVerified
-		) VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, ?, 0)
-	`, userID, addressID, paymentID, cart.Subtotal, "pending")
+			UserID, ShippingAddress, PaymentMethod, 
+			TotalAmount, Status, CreatedAt
+		) VALUES (?, ?, ?, ?, ?, datetime('now'))
+	`, userID, shippingAddress, paymentMethod, cart.Subtotal, "pending")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create order: %v", err)
 	}
 
 	orderID, err := result.LastInsertId()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get order ID: %v", err)
 	}
 
 	// Create order items
 	for _, item := range cart.Items {
 		_, err = tx.Exec(`
 			INSERT INTO order_details (
-				OrderID, ProductID, Quantity, PriceAtPurchase
+				OrderID, ProductID, Quantity, Price
 			) VALUES (?, ?, ?, ?)
 		`, orderID, item.ProductID, item.Quantity, item.Price)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to create order item: %v", err)
 		}
 
 		// Update product stock
@@ -112,20 +84,20 @@ func CreateOrder(userID int64, shippingAddress, paymentMethod string) (*Order, e
 			item.Quantity, item.ProductID,
 		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to update stock: %v", err)
 		}
 	}
 
 	// Clear cart
-	_, err = tx.Exec("DELETE FROM cart_contents WHERE CartID = ?", cart.CartID)
+	err = ClearCart(userID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to clear cart: %v", err)
 	}
 
 	// Commit transaction
 	err = tx.Commit()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to commit transaction: %v", err)
 	}
 
 	// Return order
@@ -137,18 +109,17 @@ func CreateOrder(userID int64, shippingAddress, paymentMethod string) (*Order, e
 		OrderDate:       time.Now(),
 		TotalAmount:     cart.Subtotal,
 		Status:          "pending",
-		PaymentVerified: false,
-		Items:           []OrderItem{},
+		Items:           make([]OrderItem, len(cart.Items)),
 	}
 
 	// Add items to order
-	for _, item := range cart.Items {
-		order.Items = append(order.Items, OrderItem{
+	for i, item := range cart.Items {
+		order.Items[i] = OrderItem{
 			ProductID:       item.ProductID,
 			Name:            item.Name,
 			Quantity:        item.Quantity,
 			PriceAtPurchase: item.Price,
-		})
+		}
 	}
 
 	return order, nil
@@ -157,42 +128,54 @@ func CreateOrder(userID int64, shippingAddress, paymentMethod string) (*Order, e
 // Get orders by user ID
 func GetOrdersByUserID(userID int64) ([]Order, error) {
 	rows, err := database.DB.Query(`
-		SELECT o.OrderID, o.OrderDate, o.TotalAmount, o.Status, 
-		       sa.Address, pm.Name
-		FROM orders o
-		JOIN shipping_addresses sa ON o.ShippingAddressID = sa.AddressID
-		JOIN payment_methods pm ON o.PaymentMethodID = pm.PaymentMethodID
-		WHERE o.UserID = ?
-		ORDER BY o.OrderDate DESC
+		SELECT OrderID, UserID, ShippingAddress, PaymentMethod, 
+			   CreatedAt, TotalAmount, Status
+		FROM orders
+		WHERE UserID = ?
+		ORDER BY CreatedAt DESC
 	`, userID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch orders: %v", err)
 	}
 	defer rows.Close()
 
 	var orders []Order
 	for rows.Next() {
 		var o Order
+		var createdAt string
 		err := rows.Scan(
-			&o.OrderID, &o.OrderDate, &o.TotalAmount, &o.Status,
-			&o.ShippingAddress, &o.PaymentMethod,
+			&o.OrderID,
+			&o.UserID,
+			&o.ShippingAddress,
+			&o.PaymentMethod,
+			&createdAt,
+			&o.TotalAmount,
+			&o.Status,
 		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan order: %v", err)
 		}
-		o.UserID = userID
+
+		// Parse the created_at timestamp
+		o.OrderDate, _ = time.Parse("2006-01-02 15:04:05", createdAt)
 
 		// Get order items
 		itemRows, err := database.DB.Query(`
-			SELECT od.ProductID, p.Name, od.Quantity, od.PriceAtPurchase
+			SELECT od.ProductID, p.Name, od.Quantity, od.Price
 			FROM order_details od
 			JOIN products p ON od.ProductID = p.ProductID
 			WHERE od.OrderID = ?
 		`, o.OrderID)
 		if err == nil {
+			o.Items = make([]OrderItem, 0)
 			for itemRows.Next() {
 				var item OrderItem
-				err := itemRows.Scan(&item.ProductID, &item.Name, &item.Quantity, &item.PriceAtPurchase)
+				err := itemRows.Scan(
+					&item.ProductID,
+					&item.Name,
+					&item.Quantity,
+					&item.PriceAtPurchase,
+				)
 				if err == nil {
 					o.Items = append(o.Items, item)
 				}
@@ -209,27 +192,58 @@ func GetOrdersByUserID(userID int64) ([]Order, error) {
 // Get all orders (admin only)
 func GetAllOrders() ([]Order, error) {
 	rows, err := database.DB.Query(`
-		SELECT o.OrderID, o.UserID, o.OrderDate, o.TotalAmount, o.Status, 
-		       sa.Address, pm.Name
-		FROM orders o
-		JOIN shipping_addresses sa ON o.ShippingAddressID = sa.AddressID
-		JOIN payment_methods pm ON o.PaymentMethodID = pm.PaymentMethodID
-		ORDER BY o.OrderDate DESC
+		SELECT OrderID, UserID, ShippingAddress, PaymentMethod, 
+			   CreatedAt, TotalAmount, Status
+		FROM orders
+		ORDER BY CreatedAt DESC
 	`)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch orders: %v", err)
 	}
 	defer rows.Close()
 
 	var orders []Order
 	for rows.Next() {
 		var o Order
+		var createdAt string
 		err := rows.Scan(
-			&o.OrderID, &o.UserID, &o.OrderDate, &o.TotalAmount, &o.Status,
-			&o.ShippingAddress, &o.PaymentMethod,
+			&o.OrderID,
+			&o.UserID,
+			&o.ShippingAddress,
+			&o.PaymentMethod,
+			&createdAt,
+			&o.TotalAmount,
+			&o.Status,
 		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan order: %v", err)
+		}
+
+		// Parse the created_at timestamp
+		o.OrderDate, _ = time.Parse("2006-01-02 15:04:05", createdAt)
+
+		// Get order items
+		itemRows, err := database.DB.Query(`
+			SELECT od.ProductID, p.Name, od.Quantity, od.Price
+			FROM order_details od
+			JOIN products p ON od.ProductID = p.ProductID
+			WHERE od.OrderID = ?
+		`, o.OrderID)
+		if err == nil {
+			o.Items = make([]OrderItem, 0)
+			for itemRows.Next() {
+				var item OrderItem
+				err := itemRows.Scan(
+					&item.ProductID,
+					&item.Name,
+					&item.Quantity,
+					&item.PriceAtPurchase,
+				)
+				if err == nil {
+					o.Items = append(o.Items, item)
+				}
+			}
+			itemRows.Close()
 		}
 
 		orders = append(orders, o)

@@ -1,121 +1,146 @@
 package models
 
 import (
+	"database/sql"
+	"fmt"
 	"go_module/internal/database"
 )
 
 type CartItem struct {
-	ProductID   int64   `json:"product_id"`
-	Name        string  `json:"name"`
-	Price       float64 `json:"price"`
-	Quantity    int     `json:"quantity"`
-	ImageURL    string  `json:"image_url,omitempty"`
-	Description string  `json:"description,omitempty"`
+	CartItemID int64   `json:"cart_item_id"`
+	ProductID  int64   `json:"product_id"`
+	Name       string  `json:"name"`
+	Price      float64 `json:"price"`
+	Quantity   int     `json:"quantity"`
+	ImageURL   string  `json:"image_url"`
 }
 
 type Cart struct {
-	CartID   int64      `json:"cart_id"`
-	UserID   int64      `json:"user_id"`
 	Items    []CartItem `json:"items"`
 	Subtotal float64    `json:"subtotal"`
 }
 
 // Add item to cart
-func AddToCart(userID, productID int64, quantity int) error {
-	// First, check if user has a cart
-	var cartID int64
-	err := database.DB.QueryRow("SELECT CartID FROM cart WHERE UserID = ?", userID).Scan(&cartID)
-
+func AddToCart(userID int64, productID int64, quantity int) error {
+	// Start transaction
+	tx, err := database.DB.Begin()
 	if err != nil {
-		// Create a new cart if one doesn't exist
-		result, err := database.DB.Exec("INSERT INTO cart (UserID) VALUES (?)", userID)
+		return fmt.Errorf("failed to start transaction: %v", err)
+	}
+	defer func() {
 		if err != nil {
-			return err
+			tx.Rollback()
 		}
+	}()
 
-		cartID, err = result.LastInsertId()
-		if err != nil {
-			return err
-		}
+	// First check if product exists and has enough stock
+	var stock int
+	err = tx.QueryRow("SELECT Stock FROM products WHERE ProductID = ?", productID).Scan(&stock)
+	if err == sql.ErrNoRows {
+		return fmt.Errorf("product not found")
+	}
+	if err != nil {
+		return fmt.Errorf("failed to check product stock: %v", err)
+	}
+	if stock < quantity {
+		return fmt.Errorf("insufficient stock (available: %d, requested: %d)", stock, quantity)
 	}
 
-	// Check if product already exists in cart
-	var existingID int64
+	// Check if item already exists in cart
 	var existingQuantity int
-	err = database.DB.QueryRow(
-		"SELECT CartContentID, Quantity FROM cart_contents WHERE CartID = ? AND ProductID = ?",
-		cartID, productID,
-	).Scan(&existingID, &existingQuantity)
+	var cartItemID int64
+	err = tx.QueryRow(`
+		SELECT CartItemID, Quantity FROM cart_items 
+		WHERE UserID = ? AND ProductID = ?`,
+		userID, productID,
+	).Scan(&cartItemID, &existingQuantity)
 
-	if err == nil {
-		// Update existing cart item
-		_, err = database.DB.Exec(
-			"UPDATE cart_contents SET Quantity = ? WHERE CartContentID = ?",
-			existingQuantity+quantity, existingID,
+	if err == sql.ErrNoRows {
+		// Item not in cart, insert new item
+		_, err = tx.Exec(`
+			INSERT INTO cart_items (UserID, ProductID, Quantity)
+			VALUES (?, ?, ?)`,
+			userID, productID, quantity,
 		)
-		return err
+		if err != nil {
+			return fmt.Errorf("failed to add item to cart: %v", err)
+		}
+	} else if err != nil {
+		return fmt.Errorf("failed to check cart: %v", err)
 	} else {
-		// Add new cart item
-		_, err = database.DB.Exec(
-			"INSERT INTO cart_contents (CartID, ProductID, Quantity) VALUES (?, ?, ?)",
-			cartID, productID, quantity,
+		// Check if total quantity would exceed stock
+		if existingQuantity+quantity > stock {
+			return fmt.Errorf("insufficient stock (available: %d, in cart: %d, requested: %d)",
+				stock, existingQuantity, quantity)
+		}
+
+		// Item exists, update quantity
+		_, err = tx.Exec(`
+			UPDATE cart_items 
+			SET Quantity = Quantity + ?
+			WHERE CartItemID = ?`,
+			quantity, cartItemID,
 		)
-		return err
+		if err != nil {
+			return fmt.Errorf("failed to update cart: %v", err)
+		}
 	}
+
+	// Commit transaction
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("failed to commit transaction: %v", err)
+	}
+
+	return nil
 }
 
-// Get cart by user ID
+// Get cart contents
 func GetCartByUserID(userID int64) (*Cart, error) {
-	// Get cart ID
-	var cartID int64
-	err := database.DB.QueryRow("SELECT CartID FROM cart WHERE UserID = ?", userID).Scan(&cartID)
-	if err != nil {
-		// Create a new cart if one doesn't exist
-		result, err := database.DB.Exec("INSERT INTO cart (UserID) VALUES (?)", userID)
-		if err != nil {
-			return nil, err
-		}
-
-		cartID, err = result.LastInsertId()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// Create cart object
-	cart := &Cart{
-		CartID: cartID,
-		UserID: userID,
-		Items:  []CartItem{},
-	}
-
-	// Get cart items
 	rows, err := database.DB.Query(`
-		SELECT p.ProductID, p.Name, p.Price, cc.Quantity, p.Description
-		FROM cart_contents cc
-		JOIN products p ON cc.ProductID = p.ProductID
-		WHERE cc.CartID = ?
-	`, cartID)
+		SELECT 
+			ci.CartItemID,
+			ci.ProductID,
+			p.Name,
+			p.Price,
+			ci.Quantity,
+			p.ImageURL
+		FROM cart_items ci
+		JOIN products p ON ci.ProductID = p.ProductID
+		WHERE ci.UserID = ?`,
+		userID,
+	)
 	if err != nil {
-		return cart, nil // Return empty cart on error
+		return nil, fmt.Errorf("failed to fetch cart: %v", err)
 	}
 	defer rows.Close()
 
-	// Calculate subtotal
-	var subtotal float64 = 0
+	cart := &Cart{
+		Items: make([]CartItem, 0),
+	}
 
 	for rows.Next() {
 		var item CartItem
-		err := rows.Scan(&item.ProductID, &item.Name, &item.Price, &item.Quantity, &item.Description)
+		err := rows.Scan(
+			&item.CartItemID,
+			&item.ProductID,
+			&item.Name,
+			&item.Price,
+			&item.Quantity,
+			&item.ImageURL,
+		)
 		if err != nil {
-			continue
+			return nil, fmt.Errorf("failed to scan cart item: %v", err)
 		}
-
 		cart.Items = append(cart.Items, item)
-		subtotal += item.Price * float64(item.Quantity)
+		cart.Subtotal += item.Price * float64(item.Quantity)
 	}
 
-	cart.Subtotal = subtotal
-
 	return cart, nil
+}
+
+// Clear cart
+func ClearCart(userID int64) error {
+	_, err := database.DB.Exec("DELETE FROM cart_items WHERE UserID = ?", userID)
+	return err
 }

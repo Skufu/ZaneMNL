@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"fmt"
+	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"go_module/internal/models"
 
@@ -18,14 +21,22 @@ func RegisterUser(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
+		log.Printf("Registration input validation failed: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	log.Printf("Attempting to register user: %s, email: %s", input.Username, input.Email)
+
 	// Create user
 	user, err := models.CreateUser(input.Username, input.Email, input.Password, "customer")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+		log.Printf("Failed to create user: %v", err)
+		if strings.Contains(err.Error(), "UNIQUE constraint") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Email already exists"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -105,6 +116,7 @@ func GetProduct(c *gin.Context) {
 func AddToCart(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
+		log.Printf("User ID not found in context")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
@@ -115,13 +127,17 @@ func AddToCart(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
+		log.Printf("Invalid input: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	log.Printf("Adding to cart - UserID: %v, ProductID: %v, Quantity: %v", userID, input.ProductID, input.Quantity)
+
 	err := models.AddToCart(userID.(int64), input.ProductID, input.Quantity)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add item to cart"})
+		log.Printf("Failed to add to cart: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -149,23 +165,45 @@ func GetCart(c *gin.Context) {
 func Checkout(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
+		log.Printf("User ID not found in context")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
 	var input struct {
-		ShippingAddress string `json:"shipping_address" binding:"required"`
-		PaymentMethod   string `json:"payment_method" binding:"required"`
+		ShippingAddress struct {
+			FullName    string `json:"full_name" binding:"required"`
+			PhoneNumber string `json:"phone_number" binding:"required"`
+			Address     string `json:"address" binding:"required"`
+			City        string `json:"city" binding:"required"`
+			Province    string `json:"province" binding:"required"`
+			PostalCode  string `json:"postal_code" binding:"required"`
+		} `json:"shipping_address" binding:"required"`
+		PaymentMethod string `json:"payment_method" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
+		log.Printf("Invalid checkout input: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	order, err := models.CreateOrder(userID.(int64), input.ShippingAddress, input.PaymentMethod)
+	// Format shipping address as a single string
+	shippingAddress := fmt.Sprintf("%s\n%s\n%s\n%s, %s %s",
+		input.ShippingAddress.FullName,
+		input.ShippingAddress.PhoneNumber,
+		input.ShippingAddress.Address,
+		input.ShippingAddress.City,
+		input.ShippingAddress.Province,
+		input.ShippingAddress.PostalCode,
+	)
+
+	log.Printf("Creating order for userID: %v with shipping address: %v", userID, shippingAddress)
+
+	order, err := models.CreateOrder(userID.(int64), shippingAddress, input.PaymentMethod)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create order"})
+		log.Printf("Failed to create order: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -192,11 +230,13 @@ func GetOrders(c *gin.Context) {
 // CreateProduct adds a new product (admin only)
 func CreateProduct(c *gin.Context) {
 	var input struct {
-		Name        string  `json:"name" binding:"required"`
-		Description string  `json:"description" binding:"required"`
+		Name        string  `json:"name" binding:"required,min=3"`
+		Description string  `json:"description" binding:"required,min=10"`
 		Price       float64 `json:"price" binding:"required,min=0.01"`
-		ImageURL    string  `json:"image_url"`
+		ImageURL    string  `json:"image_url" binding:"omitempty,url"`
 		Stock       int     `json:"stock" binding:"required,min=0"`
+		Category    string  `json:"category" binding:"required"`
+		Brand       string  `json:"brand" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {

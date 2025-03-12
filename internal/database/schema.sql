@@ -2,9 +2,9 @@
 CREATE TABLE users (
     UserID INTEGER PRIMARY KEY AUTOINCREMENT,
     Username TEXT NOT NULL,
-    Email TEXT NOT NULL,
+    Email TEXT NOT NULL UNIQUE,
     Password TEXT NOT NULL,
-    Role TEXT,
+    Role TEXT DEFAULT 'customer',
     CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     LastLogin DATETIME
 );
@@ -13,16 +13,9 @@ CREATE TABLE users (
 CREATE TABLE products (
     ProductID INTEGER PRIMARY KEY AUTOINCREMENT,
     Name TEXT NOT NULL,
-    Brand TEXT,
-    Category TEXT,
-    Price REAL,
-    Stock INTEGER,
-    Status TEXT,
-    CapStyle TEXT,
-    Color TEXT,
     Description TEXT,
-    Slug TEXT,
-    Size TEXT
+    Price REAL NOT NULL,
+    Stock INTEGER DEFAULT 0
 );
 
 -- Payment methods table
@@ -50,27 +43,19 @@ CREATE TABLE shipping_addresses (
 CREATE TABLE orders (
     OrderID INTEGER PRIMARY KEY AUTOINCREMENT,
     UserID INTEGER NOT NULL,
-    ShippingAddressID INTEGER,
-    PaymentMethodID INTEGER,
+    TotalAmount REAL NOT NULL,
+    Status TEXT DEFAULT 'pending',
     OrderDate DATETIME DEFAULT CURRENT_TIMESTAMP,
-    TotalAmount REAL,
-    Status TEXT,
-    CancelationTime DATETIME,
-    TrackingNumber TEXT,
-    PaymentVerified INTEGER,  -- SQLite doesn't have boolean, use INTEGER (0 or 1)
-    PaymentReference TEXT,
-    FOREIGN KEY (UserID) REFERENCES users(UserID),
-    FOREIGN KEY (ShippingAddressID) REFERENCES shipping_addresses(AddressID),
-    FOREIGN KEY (PaymentMethodID) REFERENCES payment_methods(PaymentMethodID)
+    FOREIGN KEY (UserID) REFERENCES users(UserID)
 );
 
--- Order details table
+-- Order details
 CREATE TABLE order_details (
     OrderDetailID INTEGER PRIMARY KEY AUTOINCREMENT,
     OrderID INTEGER,
     ProductID INTEGER,
     Quantity INTEGER,
-    PriceAtPurchase REAL,
+    Price REAL,
     FOREIGN KEY (OrderID) REFERENCES orders(OrderID),
     FOREIGN KEY (ProductID) REFERENCES products(ProductID)
 );
@@ -93,12 +78,12 @@ CREATE TABLE cart (
     FOREIGN KEY (UserID) REFERENCES users(UserID)
 );
 
--- Cart contents table
+-- Cart contents
 CREATE TABLE cart_contents (
     CartContentID INTEGER PRIMARY KEY AUTOINCREMENT,
     CartID INTEGER,
     ProductID INTEGER,
-    Quantity INTEGER,
+    Quantity INTEGER DEFAULT 1,
     FOREIGN KEY (CartID) REFERENCES cart(CartID),
     FOREIGN KEY (ProductID) REFERENCES products(ProductID)
 );
