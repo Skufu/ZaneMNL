@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZANE MNL | Premium Caps</title>
+    <title>ZANE MNL | Shop</title>
     <link rel="stylesheet" href="main.css">
+    <link rel="stylesheet" href="shop.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
@@ -15,8 +16,8 @@
             </div>
             <nav>
                 <ul class="nav-links">
-                    <li><a href="index.html" class="active">Home</a></li>
-                    <li><a href="shop.html" id="shop-link">Shop</a></li>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="shop.html" class="active">Shop</a></li>
                     <li><a href="#">Sale</a></li>
                 </ul>
             </nav>
@@ -29,115 +30,60 @@
     </header>
 
     <main>
-        <section class="hero">
-            <div class="season-tag">New spring collection 2025</div>
-            <h1>Where style speaks, trends resonate, fashion flourishes</h1>
-            <p>Unveiling a cap destination where trends blend seamlessly with your individual style aspirations. Discover today!</p>
-            <a href="shop.html" class="cta-button" id="shop-cta">New collection <i class="fas fa-arrow-right"></i></a>
+        <section class="shop-hero">
+            <div class="container">
+                <h1>Shop All Caps</h1>
+                <p>Find your perfect cap from our premium collection</p>
+            </div>
         </section>
 
-        <section class="featured-products">
-            <h2 class="section-title">Featured Products</h2>
-            <div class="product-carousel">
-                <!-- Product cards will be dynamically loaded from the API -->
-                <div class="product-card">
-                    <img src="images/cap1.png" alt="New York Yankees Cap">
-                    <div class="product-info">
-                        <h3>NY Yankees</h3>
-                        <p>Price for all<br>₱1,200</p>
+        <section class="shop-content">
+            <div class="container">
+                <div class="shop-filters">
+                    <div class="filter-group">
+                        <h3>Categories</h3>
+                        <ul>
+                            <li><a href="#" class="active" data-filter="all">All Caps</a></li>
+                            <li><a href="#" data-filter="baseball">Baseball</a></li>
+                            <li><a href="#" data-filter="snapback">Snapback</a></li>
+                            <li><a href="#" data-filter="fitted">Fitted</a></li>
+                            <li><a href="#" data-filter="trucker">Trucker</a></li>
+                        </ul>
+                    </div>
+                    <div class="filter-group">
+                        <h3>Price Range</h3>
+                        <div class="price-slider">
+                            <input type="range" min="500" max="2000" value="2000" class="slider" id="priceRange">
+                            <div class="price-range-values">
+                                <span>₱500</span>
+                                <span id="priceValue">₱2000</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <h3>Sort By</h3>
+                        <select id="sortOptions">
+                            <option value="default">Featured</option>
+                            <option value="price-low">Price: Low to High</option>
+                            <option value="price-high">Price: High to Low</option>
+                            <option value="name-asc">Name: A to Z</option>
+                            <option value="name-desc">Name: Z to A</option>
+                        </select>
                     </div>
                 </div>
-                <div class="product-card">
-                    <img src="images/cap2.png" alt="LA Dodgers Cap">
-                    <div class="product-info">
-                        <h3>LA Dodgers</h3>
-                        <p>Price for all<br>₱1,200</p>
+                <div class="shop-products">
+                    <div class="products-grid" id="productsGrid">
+                        <!-- Products will be loaded dynamically -->
                     </div>
-                </div>
-                <div class="product-card">
-                    <img src="images/cap3.png" alt="Chicago White Sox Cap">
-                    <div class="product-info">
-                        <h3>White Sox</h3>
-                        <p>Price for all<br>₱1,200</p>
+                    <div class="pagination">
+                        <button class="pagination-btn" id="prevPage" disabled><i class="fas fa-chevron-left"></i></button>
+                        <span id="currentPage">Page 1</span>
+                        <button class="pagination-btn" id="nextPage"><i class="fas fa-chevron-right"></i></button>
                     </div>
-                </div>
-                <div class="product-card">
-                    <img src="images/cap4.png" alt="Atlanta Braves Cap">
-                    <div class="product-info">
-                        <h3>Atlanta Braves</h3>
-                        <p>Price for all<br>₱1,200</p>
-                    </div>
-                </div>
-                <div class="product-card">
-                    <img src="images/cap5.png" alt="Oakland Athletics Cap">
-                    <div class="product-info">
-                        <h3>Oakland A's</h3>
-                        <p>Price for all<br>₱1,200</p>
-                    </div>
-                </div>
-                <div class="carousel-controls">
-                    <button class="prev-btn"><i class="fas fa-chevron-left"></i></button>
-                    <button class="next-btn"><i class="fas fa-chevron-right"></i></button>
                 </div>
             </div>
         </section>
     </main>
-
-    <footer>
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-logo">
-                    <h2>ZANE MNL</h2>
-                    <p>Premium caps for every style</p>
-                </div>
-                <div class="footer-links">
-                    <div class="footer-column">
-                        <h3>Shop</h3>
-                        <ul>
-                            <li><a href="shop.html">All Caps</a></li>
-                            <li><a href="#">New Arrivals</a></li>
-                            <li><a href="#">Best Sellers</a></li>
-                            <li><a href="#">Sale</a></li>
-                        </ul>
-                    </div>
-                    <div class="footer-column">
-                        <h3>Help</h3>
-                        <ul>
-                            <li><a href="#">Contact Us</a></li>
-                            <li><a href="#">Shipping & Returns</a></li>
-                            <li><a href="#">FAQ</a></li>
-                            <li><a href="#">Size Guide</a></li>
-                        </ul>
-                    </div>
-                    <div class="footer-column">
-                        <h3>About</h3>
-                        <ul>
-                            <li><a href="#">Our Story</a></li>
-                            <li><a href="#">Blog</a></li>
-                            <li><a href="#">Sustainability</a></li>
-                            <li><a href="#">Careers</a></li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="footer-social">
-                    <h3>Follow Us</h3>
-                    <div class="social-icons">
-                        <a href="#"><i class="fab fa-facebook-f"></i></a>
-                        <a href="#"><i class="fab fa-instagram"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
-                        <a href="#"><i class="fab fa-tiktok"></i></a>
-                    </div>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2024 ZANE MNL. All rights reserved.</p>
-                <div class="footer-bottom-links">
-                    <a href="#">Privacy Policy</a>
-                    <a href="#">Terms of Service</a>
-                </div>
-            </div>
-        </div>
-    </footer>
 
     <!-- Login Form Modal -->
     <div class="form-modal" id="loginModal">
@@ -252,7 +198,63 @@
         </div>
     </div>
 
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <h2>ZANE MNL</h2>
+                    <p>Premium caps for every style</p>
+                </div>
+                <div class="footer-links">
+                    <div class="footer-column">
+                        <h3>Shop</h3>
+                        <ul>
+                            <li><a href="shop.html">All Caps</a></li>
+                            <li><a href="#">New Arrivals</a></li>
+                            <li><a href="#">Best Sellers</a></li>
+                            <li><a href="#">Sale</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-column">
+                        <h3>Help</h3>
+                        <ul>
+                            <li><a href="#">Contact Us</a></li>
+                            <li><a href="#">Shipping & Returns</a></li>
+                            <li><a href="#">FAQ</a></li>
+                            <li><a href="#">Size Guide</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-column">
+                        <h3>About</h3>
+                        <ul>
+                            <li><a href="#">Our Story</a></li>
+                            <li><a href="#">Blog</a></li>
+                            <li><a href="#">Sustainability</a></li>
+                            <li><a href="#">Careers</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="footer-social">
+                    <h3>Follow Us</h3>
+                    <div class="social-icons">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-tiktok"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 ZANE MNL. All rights reserved.</p>
+                <div class="footer-bottom-links">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
     <script src="main.js"></script>
-    <script src="cart.js"></script>
+    <script src="shop.js"></script>
 </body>
-</html>
+</html> 
