@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"fmt"
 	"go_module/internal/database"
 	"time"
@@ -67,8 +68,9 @@ func CreateOrder(userID int64, shippingAddress, paymentMethod string) (*Order, e
 		return nil, fmt.Errorf("failed to get order ID: %v", err)
 	}
 
-	// Create order items
+	// Create order items and update stock in one transaction
 	for _, item := range cart.Items {
+		// Add to order details
 		_, err = tx.Exec(`
 			INSERT INTO order_details (
 				OrderID, ProductID, Quantity, Price
@@ -88,8 +90,8 @@ func CreateOrder(userID int64, shippingAddress, paymentMethod string) (*Order, e
 		}
 	}
 
-	// Clear cart
-	err = ClearCart(userID)
+	// Clear cart within the same transaction
+	_, err = tx.Exec("DELETE FROM cart_items WHERE UserID = ?", userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to clear cart: %v", err)
 	}
@@ -112,7 +114,7 @@ func CreateOrder(userID int64, shippingAddress, paymentMethod string) (*Order, e
 		Items:           make([]OrderItem, len(cart.Items)),
 	}
 
-	// Add items to order
+	// Add items to order response
 	for i, item := range cart.Items {
 		order.Items[i] = OrderItem{
 			ProductID:       item.ProductID,
@@ -257,7 +259,7 @@ func UpdateOrderStatus(id int64, status string) error {
 	// Start transaction
 	tx, err := database.DB.Begin()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to start transaction: %v", err)
 	}
 	defer func() {
 		if err != nil {
@@ -265,17 +267,28 @@ func UpdateOrderStatus(id int64, status string) error {
 		}
 	}()
 
-	// Get current status
+	// Check if order exists and get current status
 	var currentStatus string
 	err = tx.QueryRow("SELECT Status FROM orders WHERE OrderID = ?", id).Scan(&currentStatus)
+	if err == sql.ErrNoRows {
+		return fmt.Errorf("order not found")
+	}
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get order status: %v", err)
 	}
 
 	// Update status
-	_, err = tx.Exec("UPDATE orders SET Status = ? WHERE OrderID = ?", status, id)
+	result, err := tx.Exec("UPDATE orders SET Status = ? WHERE OrderID = ?", status, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update order status: %v", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %v", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("order not found")
 	}
 
 	// Add to order history
@@ -284,9 +297,14 @@ func UpdateOrderStatus(id int64, status string) error {
 		VALUES (?, ?, ?)
 	`, id, currentStatus, status)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create history record: %v", err)
 	}
 
 	// Commit transaction
-	return tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("failed to commit transaction: %v", err)
+	}
+
+	return nil
 }

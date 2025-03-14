@@ -235,18 +235,20 @@ func CreateProduct(c *gin.Context) {
 		Price       float64 `json:"price" binding:"required,min=0.01"`
 		ImageURL    string  `json:"image_url" binding:"omitempty,url"`
 		Stock       int     `json:"stock" binding:"required,min=0"`
-		Category    string  `json:"category" binding:"required"`
-		Brand       string  `json:"brand" binding:"required"`
+		Category    string  `json:"category" binding:"omitempty"`
+		Brand       string  `json:"brand" binding:"omitempty"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
+		log.Printf("Invalid product input: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	product, err := models.CreateProduct(input.Name, input.Description, input.Price, input.ImageURL, input.Stock)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create product"})
+		log.Printf("Failed to create product: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -328,9 +330,16 @@ func UpdateOrderStatus(c *gin.Context) {
 		return
 	}
 
+	log.Printf("Updating order %d status to: %s", id, input.Status)
+
 	err = models.UpdateOrderStatus(id, input.Status)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update order status"})
+		log.Printf("Failed to update order status: %v", err)
+		if err.Error() == "order not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 

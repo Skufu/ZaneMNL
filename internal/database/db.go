@@ -87,6 +87,14 @@ func createTables() {
 			FOREIGN KEY (OrderID) REFERENCES orders(OrderID),
 			FOREIGN KEY (ProductID) REFERENCES products(ProductID)
 		)`,
+		`CREATE TABLE IF NOT EXISTS order_history (
+			HistoryID INTEGER PRIMARY KEY AUTOINCREMENT,
+			OrderID INTEGER NOT NULL,
+			OldStatus TEXT NOT NULL,
+			NewStatus TEXT NOT NULL,
+			ChangedAt TEXT NOT NULL DEFAULT (datetime('now')),
+			FOREIGN KEY (OrderID) REFERENCES orders(OrderID)
+		)`,
 	}
 
 	for _, table := range tables {
