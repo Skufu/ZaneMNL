@@ -1,9 +1,17 @@
 ---
-description:
-globs:
+description: 
+globs: 
+alwaysApply: false
 ---
 
-# Your rule content
 
-- You can @ files here
-- You can use markdown but dont have to
+
+- rule: Avoid localStorage usage
+  description: Prevent the use of localStorage for storing information
+  check:
+  [db.go](mdc:internal/database/db.go)
+  [schema.sql](mdc:internal/database/schema.sql)
+
+-rule: Always check if it will connect to the backend. The backend is [main.go](mdc:cmd/api/main.go), [db.go](mdc:internal/database/db.go), [auth.go](mdc:internal/middleware/auth.go), [cart.go](mdc:internal/models/cart.go), [order.go](mdc:internal/models/order.go), [product.go](mdc:internal/models/product.go), [user.go](mdc:internal/models/user.go), [user_handler.go](mdc:internal/handlers/user_handler.go)
+
+
