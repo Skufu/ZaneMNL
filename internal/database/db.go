@@ -31,7 +31,9 @@ func InitDB() {
 	}
 
 	// Create tables
+	// You can use either createTables() or createTablesFromSchema()
 	createTables()
+	// Alternatively: createTablesFromSchema()
 
 	// Insert test data
 	insertTestData()
@@ -39,61 +41,101 @@ func InitDB() {
 	log.Println("Database initialized successfully")
 }
 
+// createTablesFromSchema initializes the database using the schema.sql file
+func createTablesFromSchema() {
+	log.Println("Creating tables from schema.sql...")
+
+	// Read schema file
+	schemaBytes, err := os.ReadFile("internal/database/schema.sql")
+	if err != nil {
+		log.Fatal("Failed to read schema file:", err)
+	}
+
+	// Execute schema
+	_, err = DB.Exec(string(schemaBytes))
+	if err != nil {
+		log.Fatal("Failed to execute schema:", err)
+	}
+
+	log.Println("Tables created successfully from schema.sql")
+}
+
 func createTables() {
-	// Simple schema for a lab project
+	// Schema based on schema.sql
 	tables := []string{
 		`CREATE TABLE IF NOT EXISTS users (
 			UserID INTEGER PRIMARY KEY AUTOINCREMENT,
 			Username TEXT NOT NULL,
-			Email TEXT UNIQUE NOT NULL,
+			Email TEXT NOT NULL UNIQUE,
 			Password TEXT NOT NULL,
-			Role TEXT NOT NULL DEFAULT 'customer',
-			CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
-			LastLogin TEXT
+			Role TEXT DEFAULT 'customer',
+			CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+			LastLogin DATETIME
 		)`,
 		`CREATE TABLE IF NOT EXISTS products (
 			ProductID INTEGER PRIMARY KEY AUTOINCREMENT,
-			Name TEXT NOT NULL UNIQUE,
+			Name TEXT NOT NULL,
+			Brand TEXT NOT NULL,
+			Size TEXT NOT NULL,
 			Description TEXT,
 			Price REAL NOT NULL,
-			ImageURL TEXT,
-			Stock INTEGER NOT NULL DEFAULT 0,
-			CreatedAt TEXT NOT NULL DEFAULT (datetime('now'))
+			Stock INTEGER DEFAULT 0
 		)`,
-		`CREATE TABLE IF NOT EXISTS cart_items (
-			CartItemID INTEGER PRIMARY KEY AUTOINCREMENT,
+		`CREATE TABLE IF NOT EXISTS payment_methods (
+			PaymentMethodID INTEGER PRIMARY KEY AUTOINCREMENT,
+			Name TEXT,
+			AccountNumber TEXT,
+			AccountName TEXT
+		)`,
+		`CREATE TABLE IF NOT EXISTS shipping_addresses (
+			AddressID INTEGER PRIMARY KEY AUTOINCREMENT,
 			UserID INTEGER NOT NULL,
-			ProductID INTEGER NOT NULL,
-			Quantity INTEGER NOT NULL DEFAULT 1,
-			FOREIGN KEY (UserID) REFERENCES users(UserID),
-			FOREIGN KEY (ProductID) REFERENCES products(ProductID)
+			FullName TEXT,
+			PhoneNumber TEXT,
+			Address TEXT,
+			City TEXT,
+			Province TEXT,
+			PostalCode TEXT,
+			FOREIGN KEY (UserID) REFERENCES users(UserID)
 		)`,
 		`CREATE TABLE IF NOT EXISTS orders (
 			OrderID INTEGER PRIMARY KEY AUTOINCREMENT,
 			UserID INTEGER NOT NULL,
-			Status TEXT NOT NULL DEFAULT 'pending',
-			ShippingAddress TEXT NOT NULL,
-			PaymentMethod TEXT NOT NULL,
 			TotalAmount REAL NOT NULL,
-			CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+			Status TEXT DEFAULT 'pending',
+			OrderDate DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (UserID) REFERENCES users(UserID)
 		)`,
 		`CREATE TABLE IF NOT EXISTS order_details (
 			OrderDetailID INTEGER PRIMARY KEY AUTOINCREMENT,
-			OrderID INTEGER NOT NULL,
-			ProductID INTEGER NOT NULL,
-			Quantity INTEGER NOT NULL,
-			Price REAL NOT NULL,
+			OrderID INTEGER,
+			ProductID INTEGER,
+			Quantity INTEGER,
+			Price REAL,
 			FOREIGN KEY (OrderID) REFERENCES orders(OrderID),
 			FOREIGN KEY (ProductID) REFERENCES products(ProductID)
 		)`,
 		`CREATE TABLE IF NOT EXISTS order_history (
 			HistoryID INTEGER PRIMARY KEY AUTOINCREMENT,
-			OrderID INTEGER NOT NULL,
-			OldStatus TEXT NOT NULL,
-			NewStatus TEXT NOT NULL,
-			ChangedAt TEXT NOT NULL DEFAULT (datetime('now')),
+			OrderID INTEGER,
+			OldStatus TEXT,
+			NewStatus TEXT,
+			ChangedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+			Note TEXT,
 			FOREIGN KEY (OrderID) REFERENCES orders(OrderID)
+		)`,
+		`CREATE TABLE IF NOT EXISTS cart (
+			CartID INTEGER PRIMARY KEY AUTOINCREMENT,
+			UserID INTEGER NOT NULL,
+			FOREIGN KEY (UserID) REFERENCES users(UserID)
+		)`,
+		`CREATE TABLE IF NOT EXISTS cart_contents (
+			CartContentID INTEGER PRIMARY KEY AUTOINCREMENT,
+			CartID INTEGER,
+			ProductID INTEGER,
+			Quantity INTEGER DEFAULT 1,
+			FOREIGN KEY (CartID) REFERENCES cart(CartID),
+			FOREIGN KEY (ProductID) REFERENCES products(ProductID)
 		)`,
 	}
 
@@ -108,30 +150,34 @@ func insertTestData() {
 	// Insert some test products
 	testProducts := []struct {
 		name        string
+		brand       string
+		size        string
 		description string
 		price       float64
-		imageURL    string
 		stock       int
 	}{
 		{
 			name:        "New Era Yankees Cap",
+			brand:       "New Era",
+			size:        "One Size",
 			description: "Official New York Yankees Baseball Cap",
 			price:       1499.99,
-			imageURL:    "https://example.com/yankees-cap.jpg",
 			stock:       50,
 		},
 		{
 			name:        "LA Dodgers Fitted Cap",
+			brand:       "New Era",
+			size:        "7 1/4",
 			description: "Official LA Dodgers Baseball Cap - Navy Blue",
 			price:       1299.99,
-			imageURL:    "https://example.com/dodgers-cap.jpg",
 			stock:       30,
 		},
 		{
 			name:        "Chicago Bulls Snapback",
+			brand:       "Mitchell & Ness",
+			size:        "One Size",
 			description: "Classic Chicago Bulls NBA Cap - Red/Black",
 			price:       999.99,
-			imageURL:    "https://example.com/bulls-cap.jpg",
 			stock:       25,
 		},
 	}
@@ -139,10 +185,10 @@ func insertTestData() {
 	for _, p := range testProducts {
 		// Try to insert, ignore errors (they'll be duplicates)
 		_, err := DB.Exec(`
-			INSERT INTO products (Name, Description, Price, ImageURL, Stock)
-			SELECT ?, ?, ?, ?, ?
+			INSERT INTO products (Name, Brand, Size, Description, Price, Stock)
+			SELECT ?, ?, ?, ?, ?, ?
 			WHERE NOT EXISTS (SELECT 1 FROM products WHERE Name = ?)
-		`, p.name, p.description, p.price, p.imageURL, p.stock, p.name)
+		`, p.name, p.brand, p.size, p.description, p.price, p.stock, p.name)
 
 		if err != nil {
 			log.Printf("Warning: Failed to insert test product %s: %v", p.name, err)
