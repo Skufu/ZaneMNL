@@ -29,10 +29,10 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	// Add this right before your other routes
-	r.OPTIONS("/register", func(c *gin.Context) {
+	// Global OPTIONS handler for CORS preflight requests
+	r.OPTIONS("/*path", func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", "*")
-		c.Header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 		c.Status(204)
 	})
@@ -53,10 +53,22 @@ func main() {
 	{
 		// GET /users/:id - Get user profile
 		auth.GET("/users/:id", handlers.GetUser)
+
+		// Cart routes
 		// POST /cart/add - Add item to cart
 		auth.POST("/cart/add", handlers.AddToCart)
+		// PUT /cart/update - Update cart item quantity
+		auth.PUT("/cart/update", handlers.UpdateCartItem)
+		// POST /cart/decrease - Decrease cart item quantity
+		auth.POST("/cart/decrease", handlers.DecreaseCartItem)
+		// DELETE /cart/:id - Remove item from cart
+		auth.DELETE("/cart/:id", handlers.RemoveCartItem)
+		// DELETE /cart - Clear cart
+		auth.DELETE("/cart", handlers.ClearCart)
 		// GET /cart - View cart contents
 		auth.GET("/cart", handlers.GetCart)
+
+		// Checkout and orders
 		// POST /checkout - Place order
 		auth.POST("/checkout", handlers.Checkout)
 		// GET /orders - View user's orders
@@ -79,7 +91,7 @@ func main() {
 		admin.PUT("/orders/:id/status", handlers.UpdateOrderStatus)
 	}
 
-	// Add this test endpoint
+	// Test endpoint
 	r.GET("/test-cors", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "CORS is working!",

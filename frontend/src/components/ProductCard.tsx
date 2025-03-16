@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { addToCart } from '../services/api';
 import './ProductCard.css';
 
 interface Product {
@@ -15,38 +17,28 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+  const navigate = useNavigate();
+  const [adding, setAdding] = useState(false);
+
   const handleAddToCart = async () => {
     // Check if user is logged in
     const token = localStorage.getItem('token');
     
     if (!token) {
-      alert('Please log in to add items to your cart');
       // Redirect to login page
-      // window.location.href = '/login';
+      navigate('/login', { state: { from: '/products' } });
       return;
     }
     
     try {
-      const response = await fetch('http://localhost:8080/cart/add', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          product_id: product.product_id,
-          quantity: 1
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to add item to cart');
-      }
-      
+      setAdding(true);
+      await addToCart(product.product_id, 1);
       alert(`${product.name} added to cart!`);
     } catch (error) {
       console.error('Error adding to cart:', error);
       alert('Failed to add item to cart. Please try again.');
+    } finally {
+      setAdding(false);
     }
   };
 
@@ -68,9 +60,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <button 
           className="add-to-cart-btn" 
           onClick={handleAddToCart}
-          disabled={product.stock <= 0}
+          disabled={product.stock <= 0 || adding}
         >
-          Add to Cart
+          {adding ? 'Adding...' : 'Add to Cart'}
         </button>
       </div>
     </div>

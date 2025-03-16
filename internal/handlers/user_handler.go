@@ -127,17 +127,29 @@ func AddToCart(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		log.Printf("Invalid input: %v", err)
+		log.Printf("Invalid input for AddToCart: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	log.Printf("Adding to cart - UserID: %v, ProductID: %v, Quantity: %v", userID, input.ProductID, input.Quantity)
 
+	// Try to add to cart
 	err := models.AddToCart(userID.(int64), input.ProductID, input.Quantity)
 	if err != nil {
 		log.Printf("Failed to add to cart: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
+		// Check for specific error types and return appropriate status codes
+		if strings.Contains(err.Error(), "insufficient stock") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if strings.Contains(err.Error(), "product not found") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add item to cart. Please try again."})
 		return
 	}
 

@@ -29,7 +29,7 @@ const Navbar: React.FC = () => {
         {isLoggedIn ? (
           <>
             <Link to="/cart" className="nav-link">Cart</Link>
-            <Link to="/profile" className="nav-link">Profile</Link>
+            <Link to="/profile" className="nav-link">My Orders</Link>
             <button onClick={handleLogout} className="nav-link logout-btn">Logout</button>
           </>
         ) : (

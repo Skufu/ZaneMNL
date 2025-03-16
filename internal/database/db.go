@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -18,16 +19,30 @@ func InitDB() {
 		log.Fatal("Failed to create database directory:", err)
 	}
 
-	// Open database - store it in a simple data directory
+	// Open database with improved concurrency settings
+	// WAL mode provides better concurrency
+	// busy_timeout sets how long to wait when the database is locked
 	var err error
-	DB, err = sql.Open("sqlite3", "./data/lab.db")
+	DB, err = sql.Open("sqlite3", "./data/lab.db?_journal=WAL&_busy_timeout=5000&_foreign_keys=on")
 	if err != nil {
 		log.Fatal("Failed to open database:", err)
 	}
 
+	// Configure connection pool
+	// SQLite works best with limited connections
+	DB.SetMaxOpenConns(1) // Limit to one connection to prevent locks
+	DB.SetMaxIdleConns(1)
+	DB.SetConnMaxLifetime(time.Hour)
+
 	// Test connection
 	if err = DB.Ping(); err != nil {
 		log.Fatal("Failed to ping database:", err)
+	}
+
+	// Enable extended error logging for development
+	_, err = DB.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		log.Printf("Warning: Failed to enable foreign keys: %v", err)
 	}
 
 	// Create tables
@@ -125,14 +140,14 @@ func insertTestData() {
 			description: "Official LA Dodgers Baseball Cap - Navy Blue",
 			price:       1299.99,
 			imageURL:    "https://example.com/dodgers-cap.jpg",
-			stock:       30,
+			stock:       50,
 		},
 		{
 			name:        "Chicago Bulls Snapback",
 			description: "Classic Chicago Bulls NBA Cap - Red/Black",
 			price:       999.99,
 			imageURL:    "https://example.com/bulls-cap.jpg",
-			stock:       25,
+			stock:       50,
 		},
 	}
 

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"go_module/internal/database"
+	"log"
 )
 
 type CartItem struct {
@@ -20,15 +21,28 @@ type Cart struct {
 	Subtotal float64    `json:"subtotal"`
 }
 
-// Add item to cart
+// Add to cart with improved error handling
 func AddToCart(userID int64, productID int64, quantity int) error {
+	// Validate inputs
+	if quantity <= 0 {
+		return fmt.Errorf("quantity must be positive")
+	}
+
+	log.Printf("Starting AddToCart transaction - UserID: %d, ProductID: %d, Quantity: %d",
+		userID, productID, quantity)
+
 	// Start transaction
 	tx, err := database.DB.Begin()
 	if err != nil {
-		return fmt.Errorf("failed to start transaction: %v", err)
+		log.Printf("Failed to start transaction: %v", err)
+		return fmt.Errorf("database error: %v", err)
 	}
+
+	// Use defer with a named error to ensure proper cleanup
+	var txErr error
 	defer func() {
-		if err != nil {
+		if txErr != nil || err != nil {
+			log.Printf("Rolling back transaction due to error: %v", err)
 			tx.Rollback()
 		}
 	}()
@@ -37,14 +51,15 @@ func AddToCart(userID int64, productID int64, quantity int) error {
 	var stock int
 	err = tx.QueryRow("SELECT Stock FROM products WHERE ProductID = ?", productID).Scan(&stock)
 	if err == sql.ErrNoRows {
+		log.Printf("Product not found: %d", productID)
 		return fmt.Errorf("product not found")
 	}
 	if err != nil {
+		log.Printf("Error checking product stock: %v", err)
 		return fmt.Errorf("failed to check product stock: %v", err)
 	}
-	if stock < quantity {
-		return fmt.Errorf("insufficient stock (available: %d, requested: %d)", stock, quantity)
-	}
+
+	log.Printf("Product %d has stock: %d", productID, stock)
 
 	// Check if item already exists in cart
 	var existingQuantity int
@@ -57,19 +72,38 @@ func AddToCart(userID int64, productID int64, quantity int) error {
 
 	if err == sql.ErrNoRows {
 		// Item not in cart, insert new item
+		log.Printf("Item not in cart, adding new item")
+
+		// Check if there's enough stock
+		if stock < quantity {
+			log.Printf("Insufficient stock for new item: available=%d, requested=%d",
+				stock, quantity)
+			return fmt.Errorf("insufficient stock (available: %d, requested: %d)",
+				stock, quantity)
+		}
+
 		_, err = tx.Exec(`
 			INSERT INTO cart_items (UserID, ProductID, Quantity)
 			VALUES (?, ?, ?)`,
 			userID, productID, quantity,
 		)
 		if err != nil {
+			log.Printf("Failed to insert cart item: %v", err)
 			return fmt.Errorf("failed to add item to cart: %v", err)
 		}
+
+		log.Printf("Successfully added new item to cart")
 	} else if err != nil {
+		log.Printf("Error checking existing cart item: %v", err)
 		return fmt.Errorf("failed to check cart: %v", err)
 	} else {
+		// Item exists in cart
+		log.Printf("Item exists in cart with quantity: %d", existingQuantity)
+
 		// Check if total quantity would exceed stock
 		if existingQuantity+quantity > stock {
+			log.Printf("Insufficient stock for update: available=%d, in cart=%d, requested=%d",
+				stock, existingQuantity, quantity)
 			return fmt.Errorf("insufficient stock (available: %d, in cart: %d, requested: %d)",
 				stock, existingQuantity, quantity)
 		}
@@ -82,22 +116,36 @@ func AddToCart(userID int64, productID int64, quantity int) error {
 			quantity, cartItemID,
 		)
 		if err != nil {
+			log.Printf("Failed to update cart item: %v", err)
 			return fmt.Errorf("failed to update cart: %v", err)
 		}
+
+		log.Printf("Successfully updated cart item quantity to: %d", existingQuantity+quantity)
 	}
 
 	// Commit transaction
+	log.Printf("Committing transaction")
 	err = tx.Commit()
 	if err != nil {
-		return fmt.Errorf("failed to commit transaction: %v", err)
+		log.Printf("Failed to commit transaction: %v", err)
+		txErr = fmt.Errorf("failed to commit transaction: %v", err)
+		return txErr
 	}
 
+	log.Printf("AddToCart completed successfully")
 	return nil
 }
 
 // Get cart contents
 func GetCartByUserID(userID int64) (*Cart, error) {
-	rows, err := database.DB.Query(`
+	// Start transaction for consistent read
+	tx, err := database.DB.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("failed to start transaction: %v", err)
+	}
+	defer tx.Rollback()
+
+	rows, err := tx.Query(`
 		SELECT 
 			ci.CartItemID,
 			ci.ProductID,
@@ -136,11 +184,13 @@ func GetCartByUserID(userID int64) (*Cart, error) {
 		cart.Subtotal += item.Price * float64(item.Quantity)
 	}
 
+	// Commit the transaction
+	if err = tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %v", err)
+	}
+
 	return cart, nil
 }
 
-// Clear cart
-func ClearCart(userID int64) error {
-	_, err := database.DB.Exec("DELETE FROM cart_items WHERE UserID = ?", userID)
-	return err
-}
+// Note: ClearCart function has been moved to cart_operations.go
+// to avoid duplicate function definitions
