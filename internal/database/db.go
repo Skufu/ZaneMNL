@@ -103,6 +103,9 @@ func createTables() {
 			PaymentMethod TEXT NOT NULL,
 			TotalAmount REAL NOT NULL,
 			CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+			PaymentVerified BOOLEAN NOT NULL DEFAULT 0,
+			PaymentReference TEXT,
+			TrackingNumber TEXT,
 			FOREIGN KEY (UserID) REFERENCES users(UserID)
 		)`,
 		`CREATE TABLE IF NOT EXISTS order_details (
@@ -176,9 +179,20 @@ func insertTestData() {
 		}
 	}
 
+	// Insert test admin user
+	// Password is "admin123" (hashed)
+	_, err := DB.Exec(`
+		INSERT INTO users (Username, Email, Password, Role)
+		SELECT 'admin', 'admin@example.com', '$2a$10$XgXLGk9Vz7H1.XQRKVpQfeluJbU1JFrJ8XVLF2VO.P9GhOQBNM5Uy', 'admin'
+		WHERE NOT EXISTS (SELECT 1 FROM users WHERE Email = 'admin@example.com')
+	`)
+	if err != nil {
+		log.Printf("Warning: Failed to insert test admin user: %v", err)
+	}
+
 	// Verify products were inserted
 	count := 0
-	err := DB.QueryRow("SELECT COUNT(*) FROM products").Scan(&count)
+	err = DB.QueryRow("SELECT COUNT(*) FROM products").Scan(&count)
 	if err != nil {
 		log.Printf("Warning: Failed to count products: %v", err)
 	}

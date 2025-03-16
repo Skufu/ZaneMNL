@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from './components/AdminLayout';
+// @ts-ignore
 import ProductForm from './components/ProductForm';
+import { getAdminProducts, createProduct, updateProduct, deleteProduct } from '../../services/admin-api';
 import './AdminProducts.css';
 
 interface Product {
@@ -28,15 +30,14 @@ const AdminProducts: React.FC = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8080/products');
+      const data = await getAdminProducts();
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch products: ${response.status}`);
+      if (Array.isArray(data)) {
+        setProducts(data as Product[]);
+        setError(null);
+      } else {
+        throw new Error('Invalid response format');
       }
-      
-      const data = await response.json();
-      setProducts(data);
-      setError(null);
     } catch (err) {
       console.error('Error fetching products:', err);
       setError('Failed to load products. Please try again.');
@@ -61,20 +62,13 @@ const AdminProducts: React.FC = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8080/admin/products/${productId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to delete product: ${response.status}`);
-      }
-
+      await deleteProduct(productId);
+      
       // Remove product from state
       setProducts(products.filter(p => p.product_id !== productId));
+      
+      // Show success message
+      alert('Product deleted successfully');
     } catch (err) {
       console.error('Error deleting product:', err);
       alert('Failed to delete product. Please try again.');
@@ -83,38 +77,27 @@ const AdminProducts: React.FC = () => {
 
   const handleFormSubmit = async (productData: any) => {
     try {
-      const token = localStorage.getItem('token');
       const isEditing = !!editingProduct;
+      let savedProduct: Product;
       
-      const url = isEditing 
-        ? `http://localhost:8080/admin/products/${editingProduct.product_id}`
-        : 'http://localhost:8080/admin/products';
-      
-      const method = isEditing ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(productData)
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to ${isEditing ? 'update' : 'create'} product: ${response.status}`);
-      }
-
-      const savedProduct = await response.json();
-      
-      if (isEditing) {
+      if (isEditing && editingProduct) {
+        savedProduct = await updateProduct(editingProduct.product_id, productData) as Product;
+        
         // Update product in state
         setProducts(products.map(p => 
           p.product_id === editingProduct.product_id ? savedProduct : p
         ));
+        
+        // Show success message
+        alert('Product updated successfully');
       } else {
+        savedProduct = await createProduct(productData) as Product;
+        
         // Add new product to state
         setProducts([...products, savedProduct]);
+        
+        // Show success message
+        alert('Product created successfully');
       }
       
       setShowForm(false);

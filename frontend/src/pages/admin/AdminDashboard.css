@@ -132,6 +132,13 @@
   border-bottom: none;
 }
 
+.no-data {
+  text-align: center;
+  color: #95a5a6;
+  font-style: italic;
+  padding: 2rem 1rem;
+}
+
 .order-status {
   display: inline-block;
   padding: 0.25rem 0.75rem;

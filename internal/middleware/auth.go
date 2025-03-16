@@ -14,6 +14,9 @@ import (
 // In a real app, this would come from environment variables
 var secretKey = []byte("your-secret-key-here")
 
+// For development purposes only - set to true to bypass authentication
+var DevMode = true
+
 // Generate JWT token
 func GenerateToken(userID int64, role string) (string, error) {
 	log.Printf("Generating token for userID: %d, role: %s", userID, role)
@@ -37,6 +40,15 @@ func GenerateToken(userID int64, role string) (string, error) {
 // Auth middleware
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// In development mode, bypass authentication
+		if DevMode {
+			// Set a default admin user
+			c.Set("userID", int64(1))
+			c.Set("role", "admin")
+			c.Next()
+			return
+		}
+
 		authHeader := c.GetHeader("Authorization")
 		log.Printf("Auth header received: %s", authHeader)
 
@@ -92,6 +104,12 @@ func AuthMiddleware() gin.HandlerFunc {
 // Admin middleware
 func AdminMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// In development mode, bypass admin check
+		if DevMode {
+			c.Next()
+			return
+		}
+
 		role, exists := c.Get("role")
 		if !exists {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})

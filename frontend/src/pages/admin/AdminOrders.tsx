@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from './components/AdminLayout';
-import { getAdminOrders, updateOrderStatus } from '../../services/admin-api';
+import { getAdminOrders, updateOrderStatus, verifyPayment } from '../../services/admin-api';
 import './AdminOrders.css';
 
 interface OrderItem {
@@ -32,6 +32,8 @@ const AdminOrders: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
+  const [verifyingOrderId, setVerifyingOrderId] = useState<number | null>(null);
+  const [paymentReference, setPaymentReference] = useState('');
 
   useEffect(() => {
     fetchOrders();
@@ -40,11 +42,14 @@ const AdminOrders: React.FC = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      // In a real app, this would use the admin API
-      // For now, we'll use the regular orders endpoint
       const data = await getAdminOrders();
-      setOrders(data);
-      setError(null);
+      
+      if (Array.isArray(data)) {
+        setOrders(data);
+        setError(null);
+      } else {
+        throw new Error('Invalid response format');
+      }
     } catch (err) {
       console.error('Error fetching orders:', err);
       setError('Failed to load orders. Please try again.');
@@ -64,7 +69,7 @@ const AdminOrders: React.FC = () => {
   const handleStatusChange = async (orderId: number, newStatus: string) => {
     try {
       setUpdatingOrderId(orderId);
-      await updateOrderStatus(orderId, newStatus);
+      const response = await updateOrderStatus(orderId, newStatus);
       
       // Update order in state
       setOrders(orders.map(order => 
@@ -72,11 +77,44 @@ const AdminOrders: React.FC = () => {
           ? { ...order, status: newStatus } 
           : order
       ));
+      
+      // Show success message
+      alert(`Order #${orderId} status updated to ${newStatus}`);
     } catch (err) {
       console.error('Error updating order status:', err);
       alert('Failed to update order status. Please try again.');
     } finally {
       setUpdatingOrderId(null);
+    }
+  };
+
+  const handleVerifyPayment = async (orderId: number) => {
+    if (!paymentReference.trim()) {
+      alert('Please enter a payment reference');
+      return;
+    }
+    
+    try {
+      setVerifyingOrderId(orderId);
+      await verifyPayment(orderId, paymentReference);
+      
+      // Update order in state
+      setOrders(orders.map(order => 
+        order.order_id === orderId 
+          ? { ...order, payment_verified: true, payment_reference: paymentReference } 
+          : order
+      ));
+      
+      // Reset form
+      setPaymentReference('');
+      
+      // Show success message
+      alert(`Payment for Order #${orderId} has been verified`);
+    } catch (err) {
+      console.error('Error verifying payment:', err);
+      alert('Failed to verify payment. Please try again.');
+    } finally {
+      setVerifyingOrderId(null);
     }
   };
 
@@ -305,7 +343,36 @@ const AdminOrders: React.FC = () => {
                           {order.payment_reference && (
                             <p>Reference: {order.payment_reference}</p>
                           )}
+                          
+                          {!order.payment_verified && (order.payment_method === 'bank_transfer' || order.payment_method === 'gcash') && (
+                            <div className="payment-verification">
+                              <h4>Verify Payment</h4>
+                              <div className="verification-form">
+                                <input
+                                  type="text"
+                                  placeholder="Enter payment reference"
+                                  value={paymentReference}
+                                  onChange={(e) => setPaymentReference(e.target.value)}
+                                  className="reference-input"
+                                />
+                                <button
+                                  onClick={() => handleVerifyPayment(order.order_id)}
+                                  disabled={verifyingOrderId === order.order_id}
+                                  className="verify-btn"
+                                >
+                                  {verifyingOrderId === order.order_id ? 'Verifying...' : 'Verify Payment'}
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
+                        
+                        {order.tracking_number && (
+                          <div className="info-section">
+                            <h4>Tracking Information</h4>
+                            <p>Tracking Number: {order.tracking_number}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from './components/AdminLayout';
+import { getDashboardMetrics } from '../../services/admin-api';
 import './AdminDashboard.css';
 
-// Temporary mock data for dashboard metrics
+// Dashboard metrics interface
 interface DashboardMetrics {
   totalOrders: number;
   totalRevenue: number;
@@ -29,48 +30,29 @@ const AdminDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // In a real app, this would be an API call to get dashboard metrics
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        
-        // Simulate API call with timeout
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Mock data
-        const mockData: DashboardMetrics = {
-          totalOrders: 156,
-          totalRevenue: 285750.50,
-          totalProducts: 45,
-          totalUsers: 120,
-          recentOrders: [
-            { id: 1001, customer: 'John Doe', date: '2023-06-15', amount: 2499.99, status: 'delivered' },
-            { id: 1002, customer: 'Jane Smith', date: '2023-06-14', amount: 1299.99, status: 'processing' },
-            { id: 1003, customer: 'Bob Johnson', date: '2023-06-13', amount: 999.99, status: 'pending' },
-            { id: 1004, customer: 'Alice Brown', date: '2023-06-12', amount: 3499.99, status: 'delivered' },
-            { id: 1005, customer: 'Charlie Wilson', date: '2023-06-11', amount: 1499.99, status: 'shipped' },
-          ],
-          topProducts: [
-            { id: 101, name: 'New Era Yankees Cap', sales: 42, revenue: 62999.58 },
-            { id: 102, name: 'LA Dodgers Fitted Cap', sales: 38, revenue: 49399.62 },
-            { id: 103, name: 'Chicago Bulls Snapback', sales: 35, revenue: 34999.65 },
-            { id: 104, name: 'Brooklyn Nets Cap', sales: 28, revenue: 36399.72 },
-            { id: 105, name: 'Miami Heat Snapback', sales: 25, revenue: 24999.75 },
-          ]
-        };
-        
-        setMetrics(mockData);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching dashboard data:', err);
-        setError('Failed to load dashboard data. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDashboardData();
   }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching dashboard data...');
+      const data = await getDashboardMetrics();
+      console.log('Dashboard data received:', data);
+      
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid response format');
+      }
+      
+      setMetrics(data as DashboardMetrics);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError('Failed to load dashboard data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-PH', {
@@ -107,7 +89,7 @@ const AdminDashboard: React.FC = () => {
       ) : error ? (
         <div className="dashboard-error">
           <p>{error}</p>
-          <button onClick={() => window.location.reload()}>Retry</button>
+          <button onClick={fetchDashboardData}>Retry</button>
         </div>
       ) : (
         <div className="dashboard-content">
@@ -161,19 +143,25 @@ const AdminDashboard: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {metrics?.recentOrders.map(order => (
-                    <tr key={order.id}>
-                      <td>#{order.id}</td>
-                      <td>{order.customer}</td>
-                      <td>{new Date(order.date).toLocaleDateString()}</td>
-                      <td>{formatCurrency(order.amount)}</td>
-                      <td>
-                        <span className={`order-status ${getStatusClass(order.status)}`}>
-                          {order.status}
-                        </span>
-                      </td>
+                  {metrics?.recentOrders && metrics.recentOrders.length > 0 ? (
+                    metrics.recentOrders.map(order => (
+                      <tr key={order.id}>
+                        <td>#{order.id}</td>
+                        <td>{order.customer}</td>
+                        <td>{new Date(order.date).toLocaleDateString()}</td>
+                        <td>{formatCurrency(order.amount)}</td>
+                        <td>
+                          <span className={`order-status ${getStatusClass(order.status)}`}>
+                            {order.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="no-data">No recent orders</td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -192,13 +180,19 @@ const AdminDashboard: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {metrics?.topProducts.map(product => (
-                    <tr key={product.id}>
-                      <td>{product.name}</td>
-                      <td>{product.sales} units</td>
-                      <td>{formatCurrency(product.revenue)}</td>
+                  {metrics?.topProducts && metrics.topProducts.length > 0 ? (
+                    metrics.topProducts.map(product => (
+                      <tr key={product.id}>
+                        <td>{product.name}</td>
+                        <td>{product.sales} units</td>
+                        <td>{formatCurrency(product.revenue)}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={3} className="no-data">No product data available</td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>

@@ -79,16 +79,26 @@ func main() {
 	admin := r.Group("/admin")
 	admin.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
 	{
+		// GET /admin/dashboard - Get dashboard metrics
+		admin.GET("/dashboard", handlers.GetDashboardMetrics)
+
+		// Products management
+		// GET /admin/products - Get all products (admin view)
+		admin.GET("/products", handlers.GetAdminProducts)
 		// POST /admin/products - Create product
 		admin.POST("/products", handlers.CreateProduct)
 		// PUT /admin/products/:id - Update product
 		admin.PUT("/products/:id", handlers.UpdateProduct)
 		// DELETE /admin/products/:id - Delete product
 		admin.DELETE("/products/:id", handlers.DeleteProduct)
+
+		// Orders management
 		// GET /admin/orders - View all orders
-		admin.GET("/orders", handlers.GetAllOrders)
+		admin.GET("/orders", handlers.AdminGetOrders)
 		// PUT /admin/orders/:id/status - Update order status
-		admin.PUT("/orders/:id/status", handlers.UpdateOrderStatus)
+		admin.PUT("/orders/:id/status", handlers.AdminUpdateOrderStatus)
+		// PUT /admin/orders/:id/verify - Verify order payment
+		admin.PUT("/orders/:id/verify", handlers.VerifyPayment)
 	}
 
 	// Test endpoint

@@ -125,4 +125,25 @@ func AuthenticateUser(email, password string) (*User, string, error) {
 	return user, token, nil
 }
 
+// GetUserCount returns the total number of users
+func GetUserCount() (int, error) {
+	var count int
+	err := database.DB.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count users: %v", err)
+	}
+	return count, nil
+}
+
+// IsUserAdmin checks if a user has admin role
+func IsUserAdmin(userID int64) (bool, error) {
+	var role string
+	err := database.DB.QueryRow("SELECT Role FROM users WHERE UserID = ?", userID).Scan(&role)
+	if err != nil {
+		return false, fmt.Errorf("failed to get user role: %v", err)
+	}
+
+	return role == "admin", nil
+}
+
 // Implement similar functions for products and other models

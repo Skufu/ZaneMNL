@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"fmt"
 	"go_module/internal/database"
 	"time"
 )
@@ -125,4 +126,16 @@ func UpdateProduct(id int64, name, description string, price float64, imageURL s
 func DeleteProduct(id int64) error {
 	_, err := database.DB.Exec("DELETE FROM products WHERE ProductID = ?", id)
 	return err
+}
+
+// GetProductCount returns the total number of products
+func GetProductCount() (int, error) {
+	var count int
+	err := database.DB.QueryRow("SELECT COUNT(*) FROM products").Scan(&count)
+
+	if err != nil {
+		return 0, fmt.Errorf("failed to count products: %v", err)
+	}
+
+	return count, nil
 }
