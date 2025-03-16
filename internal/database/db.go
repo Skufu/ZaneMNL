@@ -23,15 +23,15 @@ func InitDB() {
 	// WAL mode provides better concurrency
 	// busy_timeout sets how long to wait when the database is locked
 	var err error
-	DB, err = sql.Open("sqlite3", "./data/lab.db?_journal=WAL&_busy_timeout=5000&_foreign_keys=on")
+	DB, err = sql.Open("sqlite3", "./data/lab.db?_journal=WAL&_busy_timeout=30000&_foreign_keys=on&_timeout=30000&cache=shared")
 	if err != nil {
 		log.Fatal("Failed to open database:", err)
 	}
 
 	// Configure connection pool
-	// SQLite works best with limited connections
-	DB.SetMaxOpenConns(1) // Limit to one connection to prevent locks
-	DB.SetMaxIdleConns(1)
+	// SQLite works best with limited connections but we need enough for concurrent operations
+	DB.SetMaxOpenConns(10) // Increase from 1 to allow more concurrent operations
+	DB.SetMaxIdleConns(5)  // Keep more idle connections ready
 	DB.SetConnMaxLifetime(time.Hour)
 
 	// Test connection
@@ -43,6 +43,18 @@ func InitDB() {
 	_, err = DB.Exec("PRAGMA foreign_keys = ON")
 	if err != nil {
 		log.Printf("Warning: Failed to enable foreign keys: %v", err)
+	}
+
+	// Set busy timeout at the connection level as well
+	_, err = DB.Exec("PRAGMA busy_timeout = 30000")
+	if err != nil {
+		log.Printf("Warning: Failed to set busy timeout: %v", err)
+	}
+
+	// Set journal mode to WAL for better concurrency
+	_, err = DB.Exec("PRAGMA journal_mode = WAL")
+	if err != nil {
+		log.Printf("Warning: Failed to set journal mode: %v", err)
 	}
 
 	// Create tables

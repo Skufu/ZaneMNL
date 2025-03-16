@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"go_module/internal/database"
+	"log"
 	"time"
 )
 
@@ -30,27 +31,44 @@ type Order struct {
 
 // Create a new order from cart
 func CreateOrder(userID int64, shippingAddress, paymentMethod string) (*Order, error) {
-	// Start transaction
+	log.Printf("Starting CreateOrder for userID: %d", userID)
+
+	// Start transaction with a timeout context
 	tx, err := database.DB.Begin()
 	if err != nil {
+		log.Printf("Failed to start transaction: %v", err)
 		return nil, fmt.Errorf("failed to start transaction: %v", err)
 	}
+
+	// Make sure we either commit or rollback the transaction
+	committed := false
 	defer func() {
-		if err != nil {
+		if !committed && tx != nil {
+			log.Printf("Rolling back transaction for userID: %d", userID)
 			tx.Rollback()
+		}
+
+		// Recover from any panics
+		if r := recover(); r != nil {
+			log.Printf("Recovered from panic in CreateOrder: %v", r)
 		}
 	}()
 
 	// Get cart
+	log.Printf("Fetching cart for userID: %d", userID)
 	cart, err := GetCartByUserID(userID)
 	if err != nil {
+		log.Printf("Failed to get cart: %v", err)
 		return nil, fmt.Errorf("failed to get cart: %v", err)
 	}
 
 	// Check if cart is empty
 	if len(cart.Items) == 0 {
+		log.Printf("Cart is empty for userID: %d", userID)
 		return nil, fmt.Errorf("cart is empty")
 	}
+
+	log.Printf("Creating order record for userID: %d with %d items", userID, len(cart.Items))
 
 	// Create order directly with shipping address and payment method
 	result, err := tx.Exec(`
@@ -60,16 +78,22 @@ func CreateOrder(userID int64, shippingAddress, paymentMethod string) (*Order, e
 		) VALUES (?, ?, ?, ?, ?, datetime('now'))
 	`, userID, shippingAddress, paymentMethod, cart.Subtotal, "pending")
 	if err != nil {
+		log.Printf("Failed to create order record: %v", err)
 		return nil, fmt.Errorf("failed to create order: %v", err)
 	}
 
 	orderID, err := result.LastInsertId()
 	if err != nil {
+		log.Printf("Failed to get order ID: %v", err)
 		return nil, fmt.Errorf("failed to get order ID: %v", err)
 	}
 
+	log.Printf("Created order with ID: %d for userID: %d", orderID, userID)
+
 	// Create order items and update stock in one transaction
 	for _, item := range cart.Items {
+		log.Printf("Adding item %d (qty: %d) to order %d", item.ProductID, item.Quantity, orderID)
+
 		// Add to order details
 		_, err = tx.Exec(`
 			INSERT INTO order_details (
@@ -77,6 +101,7 @@ func CreateOrder(userID int64, shippingAddress, paymentMethod string) (*Order, e
 			) VALUES (?, ?, ?, ?)
 		`, orderID, item.ProductID, item.Quantity, item.Price)
 		if err != nil {
+			log.Printf("Failed to create order item: %v", err)
 			return nil, fmt.Errorf("failed to create order item: %v", err)
 		}
 
@@ -86,21 +111,29 @@ func CreateOrder(userID int64, shippingAddress, paymentMethod string) (*Order, e
 			item.Quantity, item.ProductID,
 		)
 		if err != nil {
+			log.Printf("Failed to update stock: %v", err)
 			return nil, fmt.Errorf("failed to update stock: %v", err)
 		}
 	}
 
 	// Clear cart within the same transaction
+	log.Printf("Clearing cart for userID: %d", userID)
 	_, err = tx.Exec("DELETE FROM cart_items WHERE UserID = ?", userID)
 	if err != nil {
+		log.Printf("Failed to clear cart: %v", err)
 		return nil, fmt.Errorf("failed to clear cart: %v", err)
 	}
 
 	// Commit transaction
+	log.Printf("Committing transaction for order %d", orderID)
 	err = tx.Commit()
 	if err != nil {
+		log.Printf("Failed to commit transaction: %v", err)
 		return nil, fmt.Errorf("failed to commit transaction: %v", err)
 	}
+
+	committed = true
+	log.Printf("Transaction committed successfully for order %d", orderID)
 
 	// Return order
 	order := &Order{
@@ -124,6 +157,7 @@ func CreateOrder(userID int64, shippingAddress, paymentMethod string) (*Order, e
 		}
 	}
 
+	log.Printf("Order %d created successfully with %d items", orderID, len(order.Items))
 	return order, nil
 }
 

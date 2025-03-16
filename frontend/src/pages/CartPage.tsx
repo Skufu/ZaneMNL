@@ -39,50 +39,29 @@ const CartPage: React.FC = () => {
     try {
       setLoading(true);
       const data = await getCart();
-      console.log('Cart data from server:', data);
       setCart(data);
       setError(null);
     } catch (err) {
-      console.error('Failed to fetch cart:', err);
       setError('Failed to load your cart. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Update the error handling in your API functions
-  const handleApiError = async (err: any) => {
-    console.error('API error:', err);
-    
-    // Check if it's a database lock error
-    if (err instanceof Error && 
-        (err.message.includes('database is locked') || 
-         err.message.includes('Database is locked'))) {
-      
-      // Wait a moment and try to refresh the cart
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      await fetchCart();
-      return 'Database was temporarily busy. Please try again.';
-    }
-    
-    return err instanceof Error ? err.message : 'An error occurred. Please try again.';
-  };
-
-  // This function handles incrementing the quantity by 1
+  // Simple increment handler
   const handleIncrement = async (productId: number) => {
     try {
       setUpdating(productId);
       await addToCart(productId, 1);
       await fetchCart();
     } catch (err) {
-      console.error('Error incrementing quantity:', err);
-      alert(err instanceof Error ? err.message : 'Failed to update quantity');
+      alert('Failed to update quantity. Please try again.');
     } finally {
       setUpdating(null);
     }
   };
 
-  // This function handles decrementing the quantity by 1
+  // Simple decrement handler
   const handleDecrement = async (productId: number, currentQuantity: number) => {
     if (currentQuantity <= 1) return;
     
@@ -91,22 +70,20 @@ const CartPage: React.FC = () => {
       await updateCartItemQuantity(productId, currentQuantity - 1);
       await fetchCart();
     } catch (err) {
-      console.error('Error decrementing quantity:', err);
-      alert(err instanceof Error ? err.message : 'Failed to update quantity');
+      alert('Failed to update quantity. Please try again.');
     } finally {
       setUpdating(null);
     }
   };
 
-  // This function handles removing an item from the cart
+  // Simple remove handler
   const handleRemoveItem = async (productId: number) => {
     try {
       setUpdating(productId);
       await removeFromCart(productId);
       await fetchCart();
     } catch (err) {
-      console.error('Error removing item:', err);
-      alert(err instanceof Error ? err.message : 'Failed to remove item');
+      alert('Failed to remove item. Please try again.');
     } finally {
       setUpdating(null);
     }

@@ -22,11 +22,8 @@ const ProductsPage: React.FC = () => {
       try {
         setLoading(true);
         const data = await getProducts();
-        console.log('Products fetched:', data); // Debug log
         setProducts(data);
-        setError(null);
       } catch (err) {
-        console.error('Error fetching products:', err);
         setError('Failed to load products. Please try again later.');
       } finally {
         setLoading(false);

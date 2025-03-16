@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"go_module/internal/models"
 
@@ -211,15 +212,41 @@ func Checkout(c *gin.Context) {
 	)
 
 	log.Printf("Creating order for userID: %v with shipping address: %v", userID, shippingAddress)
+	log.Printf("Payment method: %v", input.PaymentMethod)
 
-	order, err := models.CreateOrder(userID.(int64), shippingAddress, input.PaymentMethod)
-	if err != nil {
+	// Set a timeout for the order creation process
+	orderChan := make(chan *models.Order, 1)
+	errChan := make(chan error, 1)
+
+	// Create the order in a separate goroutine
+	go func() {
+		order, err := models.CreateOrder(userID.(int64), shippingAddress, input.PaymentMethod)
+		if err != nil {
+			errChan <- err
+			return
+		}
+		orderChan <- order
+	}()
+
+	// Wait for the order to be created or timeout
+	select {
+	case order := <-orderChan:
+		log.Printf("Order created successfully: %+v", order)
+		c.JSON(http.StatusCreated, order)
+	case err := <-errChan:
 		log.Printf("Failed to create order: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
 
-	c.JSON(http.StatusCreated, order)
+		// Check for specific error types
+		if strings.Contains(err.Error(), "cart is empty") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Your cart is empty. Please add items before checkout."})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	case <-time.After(25 * time.Second):
+		log.Printf("Order creation timed out for userID: %v", userID)
+		c.JSON(http.StatusGatewayTimeout, gin.H{"error": "Order creation timed out. Please try again."})
+	}
 }
 
 // GetOrders retrieves all orders for the current user
