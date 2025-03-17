@@ -117,7 +117,7 @@ func GetProduct(c *gin.Context) {
 func AddToCart(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
-		log.Printf("User ID not found in context")
+		log.Printf("AddToCart: User ID not found in context")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
@@ -128,17 +128,17 @@ func AddToCart(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		log.Printf("Invalid input for AddToCart: %v", err)
+		log.Printf("AddToCart: Invalid input for AddToCart: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	log.Printf("Adding to cart - UserID: %v, ProductID: %v, Quantity: %v", userID, input.ProductID, input.Quantity)
+	log.Printf("AddToCart: Adding to cart - UserID: %v, ProductID: %v, Quantity: %v", userID, input.ProductID, input.Quantity)
 
 	// Try to add to cart
 	err := models.AddToCart(userID.(int64), input.ProductID, input.Quantity)
 	if err != nil {
-		log.Printf("Failed to add to cart: %v", err)
+		log.Printf("AddToCart: Failed to add to cart: %v", err)
 
 		// Check for specific error types and return appropriate status codes
 		if strings.Contains(err.Error(), "insufficient stock") {
@@ -161,16 +161,20 @@ func AddToCart(c *gin.Context) {
 func GetCart(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
+		log.Printf("GetCart: User ID not found in context")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
+	log.Printf("GetCart: Fetching cart for userID: %v", userID)
 	cart, err := models.GetCartByUserID(userID.(int64))
 	if err != nil {
+		log.Printf("GetCart: Failed to fetch cart: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch cart"})
 		return
 	}
 
+	log.Printf("GetCart: Successfully fetched cart for userID: %v with %d items", userID, len(cart.Items))
 	c.JSON(http.StatusOK, cart)
 }
 

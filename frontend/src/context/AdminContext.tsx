@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { login as apiLogin } from '../services/api';
 
 interface AdminUser {
   id: number;
@@ -12,7 +13,7 @@ interface AdminContextType {
   isAdmin: boolean;
   adminUser: AdminUser | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   checkAdminStatus: () => boolean;
 }
@@ -41,30 +42,41 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     checkAdminStatus();
   }, []);
 
-  const login = async (username: string, password: string): Promise<boolean> => {
-    // For demo purposes, we'll use a mock login
-    // In a real app, this would call an API endpoint
-    if (username === 'admin' && password === 'admin123') {
-      const mockAdminUser: AdminUser = {
-        id: 1,
-        username: 'admin',
-        email: 'admin@zanemanila.com',
-        role: 'Administrator'
-      };
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      // Use the real login API
+      const response = await apiLogin(email, password);
       
-      // Store admin data in localStorage
-      localStorage.setItem('token', 'mock-admin-token-12345');
-      localStorage.setItem('isAdmin', 'true');
-      localStorage.setItem('adminUser', JSON.stringify(mockAdminUser));
+      if (response && response.token) {
+        // Check if the user is an admin
+        if (response.role === 'admin') {
+          const adminUser: AdminUser = {
+            id: response.user_id || 1,
+            username: response.username || 'admin',
+            email: email,
+            role: 'Administrator'
+          };
+          
+          // Store admin data in localStorage
+          localStorage.setItem('isAdmin', 'true');
+          localStorage.setItem('adminUser', JSON.stringify(adminUser));
+          
+          // Update state
+          setAdminUser(adminUser);
+          setIsAdmin(true);
+          
+          return true;
+        } else {
+          // Not an admin
+          return false;
+        }
+      }
       
-      // Update state
-      setAdminUser(mockAdminUser);
-      setIsAdmin(true);
-      
-      return true;
+      return false;
+    } catch (error) {
+      console.error('Login failed:', error);
+      return false;
     }
-    
-    return false;
   };
 
   const checkAdminStatus = (): boolean => {

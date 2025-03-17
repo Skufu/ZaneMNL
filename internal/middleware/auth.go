@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -15,7 +16,7 @@ import (
 var secretKey = []byte("your-secret-key-here")
 
 // For development purposes only - set to true to bypass authentication
-var DevMode = true
+var DevMode = false
 
 // Generate JWT token
 func GenerateToken(userID int64, role string) (string, error) {
@@ -43,6 +44,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		// In development mode, bypass authentication
 		if DevMode {
 			// Set a default admin user
+			log.Printf("WARNING: DevMode is enabled, using admin user (ID: 1) for all requests")
 			c.Set("userID", int64(1))
 			c.Set("role", "admin")
 			c.Next()
@@ -68,6 +70,11 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		token, err := jwt.Parse(parts[1], func(token *jwt.Token) (interface{}, error) {
+			// Don't forget to validate the alg is what you expect
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				log.Printf("Unexpected signing method: %v", token.Header["alg"])
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
 			return secretKey, nil
 		})
 
@@ -93,9 +100,11 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		log.Printf("Token validated for userID: %v, role: %v", claims["user_id"], claims["role"])
-		c.Set("userID", int64(claims["user_id"].(float64)))
-		c.Set("role", claims["role"].(string))
+		userID := int64(claims["user_id"].(float64))
+		role := claims["role"].(string)
+		log.Printf("Token validated for userID: %v, role: %v", userID, role)
+		c.Set("userID", userID)
+		c.Set("role", role)
 
 		c.Next()
 	}
@@ -125,4 +134,46 @@ func AdminMiddleware() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+// GetUserIDFromRequest extracts the user ID from the JWT token in a standard HTTP request
+// This can be used outside of Gin context if needed
+func GetUserIDFromRequest(r *http.Request) (int64, error) {
+	// Get the Authorization header
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		return 0, fmt.Errorf("authorization header is required")
+	}
+
+	// Check if the header has the Bearer prefix
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		return 0, fmt.Errorf("invalid authorization header format")
+	}
+
+	// Extract the token
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+	// Parse the token
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Validate the signing method
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method")
+		}
+		return secretKey, nil
+	})
+
+	if err != nil {
+		return 0, err
+	}
+
+	// Extract claims
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		// Get the user ID from claims
+		if userID, ok := claims["user_id"].(float64); ok {
+			return int64(userID), nil
+		}
+		return 0, fmt.Errorf("user ID not found in token")
+	}
+
+	return 0, fmt.Errorf("invalid token")
 }

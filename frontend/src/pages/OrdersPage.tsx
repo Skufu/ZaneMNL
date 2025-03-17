@@ -47,7 +47,7 @@ const OrdersPage: React.FC = () => {
       setLoading(true);
       const data = await getUserOrders();
       console.log('Orders data:', data);
-      setOrders(data);
+      setOrders(data || []);
       setError(null);
     } catch (err) {
       console.error('Failed to fetch orders:', err);

@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"log"
+	"math/rand"
 	"os"
 	"time"
 
@@ -13,6 +14,9 @@ var DB *sql.DB
 
 func InitDB() {
 	log.Println("Initializing database...")
+
+	// Seed the random number generator
+	rand.Seed(time.Now().UnixNano())
 
 	// Create database directory
 	if err := os.MkdirAll("./data", 0755); err != nil {
@@ -67,7 +71,7 @@ func InitDB() {
 }
 
 func createTables() {
-	// Simple schema for a lab project
+	// Schema
 	tables := []string{
 		`CREATE TABLE IF NOT EXISTS users (
 			UserID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -87,12 +91,19 @@ func createTables() {
 			Stock INTEGER NOT NULL DEFAULT 0,
 			CreatedAt TEXT NOT NULL DEFAULT (datetime('now'))
 		)`,
+		`CREATE TABLE IF NOT EXISTS carts (
+			CartID INTEGER PRIMARY KEY AUTOINCREMENT,
+			UserID INTEGER NOT NULL UNIQUE,
+			CreatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+			UpdatedAt TEXT NOT NULL DEFAULT (datetime('now')),
+			FOREIGN KEY (UserID) REFERENCES users(UserID)
+		)`,
 		`CREATE TABLE IF NOT EXISTS cart_items (
 			CartItemID INTEGER PRIMARY KEY AUTOINCREMENT,
-			UserID INTEGER NOT NULL,
+			CartID INTEGER NOT NULL,
 			ProductID INTEGER NOT NULL,
 			Quantity INTEGER NOT NULL DEFAULT 1,
-			FOREIGN KEY (UserID) REFERENCES users(UserID),
+			FOREIGN KEY (CartID) REFERENCES carts(CartID),
 			FOREIGN KEY (ProductID) REFERENCES products(ProductID)
 		)`,
 		`CREATE TABLE IF NOT EXISTS orders (
@@ -180,14 +191,37 @@ func insertTestData() {
 	}
 
 	// Insert test admin user
-	// Password is "admin123" (hashed)
+	// Plain text password for testing
 	_, err := DB.Exec(`
 		INSERT INTO users (Username, Email, Password, Role)
-		SELECT 'admin', 'admin@example.com', '$2a$10$XgXLGk9Vz7H1.XQRKVpQfeluJbU1JFrJ8XVLF2VO.P9GhOQBNM5Uy', 'admin'
+		SELECT 'admin', 'admin@example.com', 'admin123', 'admin'
 		WHERE NOT EXISTS (SELECT 1 FROM users WHERE Email = 'admin@example.com')
 	`)
 	if err != nil {
 		log.Printf("Warning: Failed to insert test admin user: %v", err)
+	}
+
+	// Insert test customer users
+	// Plain text passwords for testing
+	testUsers := []struct {
+		username string
+		email    string
+		password string
+	}{
+		{username: "user1", email: "user1@example.com", password: "password123"},
+		{username: "user2", email: "user2@example.com", password: "password123"},
+	}
+
+	for _, u := range testUsers {
+		_, err := DB.Exec(`
+			INSERT INTO users (Username, Email, Password, Role)
+			SELECT ?, ?, ?, 'customer'
+			WHERE NOT EXISTS (SELECT 1 FROM users WHERE Email = ?)
+		`, u.username, u.email, u.password, u.email)
+
+		if err != nil {
+			log.Printf("Warning: Failed to insert test user %s: %v", u.username, err)
+		}
 	}
 
 	// Verify products were inserted
@@ -197,4 +231,95 @@ func insertTestData() {
 		log.Printf("Warning: Failed to count products: %v", err)
 	}
 	log.Printf("Number of products in database: %d", count)
+
+	// Create test orders for each user
+	createTestOrders()
+}
+
+// Create test orders for users
+func createTestOrders() {
+	// Get user IDs
+	var user1ID, user2ID int64
+	err := DB.QueryRow("SELECT UserID FROM users WHERE Email = 'user1@example.com'").Scan(&user1ID)
+	if err != nil {
+		log.Printf("Warning: Failed to get user1 ID: %v", err)
+		return
+	}
+
+	err = DB.QueryRow("SELECT UserID FROM users WHERE Email = 'user2@example.com'").Scan(&user2ID)
+	if err != nil {
+		log.Printf("Warning: Failed to get user2 ID: %v", err)
+		return
+	}
+
+	// Create test orders for user1
+	createTestOrder(user1ID, "123 Main St, City, Province, 12345", "cash_on_delivery", 1499.99, "delivered")
+	createTestOrder(user1ID, "123 Main St, City, Province, 12345", "bank_transfer", 2299.98, "processing")
+
+	// Create test orders for user2
+	createTestOrder(user2ID, "456 Oak Ave, Town, Province, 67890", "gcash", 999.99, "shipped")
+	createTestOrder(user2ID, "456 Oak Ave, Town, Province, 67890", "cash_on_delivery", 1299.99, "pending")
+}
+
+// Helper function to create a test order
+func createTestOrder(userID int64, address, paymentMethod string, amount float64, status string) {
+	// Check if user already has orders
+	var orderCount int
+	err := DB.QueryRow("SELECT COUNT(*) FROM orders WHERE UserID = ?", userID).Scan(&orderCount)
+	if err != nil {
+		log.Printf("Warning: Failed to check user orders: %v", err)
+		return
+	}
+
+	if orderCount > 0 {
+		// User already has orders, skip
+		return
+	}
+
+	// Insert order
+	result, err := DB.Exec(`
+		INSERT INTO orders (
+			UserID, ShippingAddress, PaymentMethod, TotalAmount, 
+			Status, CreatedAt, PaymentVerified
+		) VALUES (?, ?, ?, ?, ?, datetime('now', '-' || ? || ' days'), ?)
+	`, userID, address, paymentMethod, amount, status, rand.Intn(30), paymentMethod != "bank_transfer")
+
+	if err != nil {
+		log.Printf("Warning: Failed to create test order: %v", err)
+		return
+	}
+
+	orderID, err := result.LastInsertId()
+	if err != nil {
+		log.Printf("Warning: Failed to get order ID: %v", err)
+		return
+	}
+
+	// Get a random product
+	var productID int64
+	var productPrice float64
+	var productName string
+	err = DB.QueryRow("SELECT ProductID, Price, Name FROM products ORDER BY RANDOM() LIMIT 1").Scan(&productID, &productPrice, &productName)
+	if err != nil {
+		log.Printf("Warning: Failed to get random product: %v", err)
+		return
+	}
+
+	// Add order details
+	quantity := 1
+	if amount > productPrice {
+		quantity = int(amount / productPrice)
+	}
+
+	_, err = DB.Exec(`
+		INSERT INTO order_details (OrderID, ProductID, Quantity, Price)
+		VALUES (?, ?, ?, ?)
+	`, orderID, productID, quantity, productPrice)
+
+	if err != nil {
+		log.Printf("Warning: Failed to create test order details: %v", err)
+		return
+	}
+
+	log.Printf("Created test order #%d for user %d with status %s", orderID, userID, status)
 }

@@ -32,20 +32,30 @@
      2. Create a folder: `C:\sqlite`
      3. Extract the downloaded files to `C:\sqlite`
      4. Add to PATH:
-        - Open System Properties > Advanced > Environment Variables
-        - Add `C:\sqlite` to System PATH
+        - Search `edit the system environment variables`
+        - In the Box under the System Variables, Scroll down to `Path`
+        - Click `Edit`
+        - Click `New`
+        - Put the path to the extracted folder, in this case `C:\sqlite`
+        - Restart VScode 
      5. Verify installation: `sqlite3 --version`
 
 3. **Install Node.js and npm**
    - Download from [Node.js website](https://nodejs.org/)
    - Choose LTS version
    - Run the installer
-   - Verify installation:
+   - Verify installation in terminal:
      ```bash
      node --version
      npm --version
      ```
 
+     ```Powershell
+     node -v
+     npm -v
+     ```
+
+    
 4. **Install Git**
    - Download from [Git website](https://git-scm.com/)
    - Run the installer

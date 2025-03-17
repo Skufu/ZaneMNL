@@ -4,7 +4,7 @@ import { useAdmin } from '../../context/AdminContext';
 import './AdminLogin.css';
 
 interface LoginFormData {
-  username: string;
+  email: string;
   password: string;
 }
 
@@ -12,7 +12,7 @@ const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
   const { login, isAdmin } = useAdmin();
   const [formData, setFormData] = useState<LoginFormData>({
-    username: '',
+    email: '',
     password: '',
   });
   const [error, setError] = useState<string | null>(null);
@@ -40,10 +40,10 @@ const AdminLogin: React.FC = () => {
 
     try {
       // Use the login function from context
-      const success = await login(formData.username, formData.password);
+      const success = await login(formData.email, formData.password);
       
       if (!success) {
-        throw new Error('Invalid credentials. Please try again.');
+        throw new Error('Invalid credentials or insufficient permissions. Please try again.');
       }
 
       // Redirect to admin dashboard
@@ -67,15 +67,15 @@ const AdminLogin: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="admin-login-form">
           <div className="form-group">
-            <label htmlFor="username">Username</label>
+            <label htmlFor="email">Email</label>
             <input
-              type="text"
-              id="username"
-              name="username"
-              value={formData.username}
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
               onChange={handleChange}
               required
-              placeholder="Enter your username"
+              placeholder="Enter your email"
             />
           </div>
 

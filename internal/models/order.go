@@ -119,10 +119,27 @@ func CreateOrder(userID int64, shippingAddress, paymentMethod string) (*Order, e
 
 	// Clear cart within the same transaction
 	log.Printf("Clearing cart for userID: %d", userID)
-	_, err = tx.Exec("DELETE FROM cart_items WHERE UserID = ?", userID)
+
+	// Get the cart ID
+	var cartID int64
+	err = tx.QueryRow("SELECT CartID FROM carts WHERE UserID = ?", userID).Scan(&cartID)
 	if err != nil {
-		log.Printf("Failed to clear cart: %v", err)
-		return nil, fmt.Errorf("failed to clear cart: %v", err)
+		log.Printf("Failed to get cart ID: %v", err)
+		return nil, fmt.Errorf("failed to get cart ID: %v", err)
+	}
+
+	// Delete cart items
+	_, err = tx.Exec("DELETE FROM cart_items WHERE CartID = ?", cartID)
+	if err != nil {
+		log.Printf("Failed to clear cart items: %v", err)
+		return nil, fmt.Errorf("failed to clear cart items: %v", err)
+	}
+
+	// Update cart timestamp
+	_, err = tx.Exec("UPDATE carts SET UpdatedAt = datetime('now') WHERE CartID = ?", cartID)
+	if err != nil {
+		log.Printf("Failed to update cart timestamp: %v", err)
+		// Non-critical error, continue
 	}
 
 	// Commit transaction
@@ -177,7 +194,9 @@ func GetOrdersByUserID(userID int64) ([]Order, error) {
 	}
 	defer rows.Close()
 
-	var orders []Order
+	// Initialize orders as an empty slice to ensure we return an empty array instead of null
+	orders := []Order{}
+
 	for rows.Next() {
 		var o Order
 		var createdAt string
@@ -253,7 +272,9 @@ func GetAllOrders() ([]Order, error) {
 	}
 	defer rows.Close()
 
-	var orders []Order
+	// Initialize orders as an empty slice to ensure we return an empty array instead of null
+	orders := []Order{}
+
 	for rows.Next() {
 		var o Order
 		var createdAt string
@@ -440,7 +461,9 @@ func GetRecentOrders(limit int) ([]Order, error) {
 	}
 	defer rows.Close()
 
-	var orders []Order
+	// Initialize orders as an empty slice to ensure we return an empty array instead of null
+	orders := []Order{}
+
 	for rows.Next() {
 		var order Order
 		var createdAt string
@@ -471,6 +494,30 @@ func GetRecentOrders(limit int) ([]Order, error) {
 		}
 		if trackingNumber.Valid {
 			order.TrackingNumber = trackingNumber.String
+		}
+
+		// Get order items
+		itemRows, err := database.DB.Query(`
+			SELECT od.ProductID, p.Name, od.Quantity, od.Price
+			FROM order_details od
+			JOIN products p ON od.ProductID = p.ProductID
+			WHERE od.OrderID = ?
+		`, order.OrderID)
+		if err == nil {
+			order.Items = make([]OrderItem, 0)
+			for itemRows.Next() {
+				var item OrderItem
+				err := itemRows.Scan(
+					&item.ProductID,
+					&item.Name,
+					&item.Quantity,
+					&item.PriceAtPurchase,
+				)
+				if err == nil {
+					order.Items = append(order.Items, item)
+				}
+			}
+			itemRows.Close()
 		}
 
 		orders = append(orders, order)

@@ -10,6 +10,16 @@ import (
 // UpdateCartItemQuantity sets the quantity of an item in the cart to a specific value
 // This is different from AddToCart which adds the specified quantity to the existing quantity
 func UpdateCartItemQuantity(userID int64, productID int64, newQuantity int) error {
+	log.Printf("UpdateCartItemQuantity: Starting for userID: %d, productID: %d, quantity: %d",
+		userID, productID, newQuantity)
+
+	// Get or create cart
+	cartID, err := GetOrCreateCart(userID)
+	if err != nil {
+		log.Printf("UpdateCartItemQuantity: Failed to get or create cart: %v", err)
+		return fmt.Errorf("failed to get or create cart: %v", err)
+	}
+
 	// Start transaction
 	tx, err := database.DB.Begin()
 	if err != nil {
@@ -40,8 +50,8 @@ func UpdateCartItemQuantity(userID int64, productID int64, newQuantity int) erro
 	var cartItemID int64
 	err = tx.QueryRow(`
 		SELECT CartItemID, Quantity FROM cart_items 
-		WHERE UserID = ? AND ProductID = ?`,
-		userID, productID,
+		WHERE CartID = ? AND ProductID = ?`,
+		cartID, productID,
 	).Scan(&cartItemID, &existingQuantity)
 
 	if err == sql.ErrNoRows {
@@ -52,9 +62,9 @@ func UpdateCartItemQuantity(userID int64, productID int64, newQuantity int) erro
 		}
 
 		_, err = tx.Exec(`
-			INSERT INTO cart_items (UserID, ProductID, Quantity)
+			INSERT INTO cart_items (CartID, ProductID, Quantity)
 			VALUES (?, ?, ?)`,
-			userID, productID, newQuantity,
+			cartID, productID, newQuantity,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to add item to cart: %v", err)
@@ -83,6 +93,13 @@ func UpdateCartItemQuantity(userID int64, productID int64, newQuantity int) erro
 		}
 	}
 
+	// Update cart's UpdatedAt timestamp
+	_, err = tx.Exec("UPDATE carts SET UpdatedAt = datetime('now') WHERE CartID = ?", cartID)
+	if err != nil {
+		log.Printf("UpdateCartItemQuantity: Failed to update cart timestamp: %v", err)
+		return fmt.Errorf("failed to update cart timestamp: %v", err)
+	}
+
 	// Commit transaction
 	err = tx.Commit()
 	if err != nil {
@@ -94,8 +111,18 @@ func UpdateCartItemQuantity(userID int64, productID int64, newQuantity int) erro
 
 // DecreaseCartItemQuantity decreases the quantity of an item in the cart
 func DecreaseCartItemQuantity(userID int64, productID int64, decreaseBy int) error {
+	log.Printf("DecreaseCartItemQuantity: Starting for userID: %d, productID: %d, decreaseBy: %d",
+		userID, productID, decreaseBy)
+
 	if decreaseBy <= 0 {
 		return fmt.Errorf("decrease amount must be positive")
+	}
+
+	// Get or create cart
+	cartID, err := GetOrCreateCart(userID)
+	if err != nil {
+		log.Printf("DecreaseCartItemQuantity: Failed to get or create cart: %v", err)
+		return fmt.Errorf("failed to get or create cart: %v", err)
 	}
 
 	// Start transaction
@@ -114,8 +141,8 @@ func DecreaseCartItemQuantity(userID int64, productID int64, decreaseBy int) err
 	var currentQuantity int
 	err = tx.QueryRow(`
 		SELECT Quantity FROM cart_items 
-		WHERE UserID = ? AND ProductID = ?`,
-		userID, productID,
+		WHERE CartID = ? AND ProductID = ?`,
+		cartID, productID,
 	).Scan(&currentQuantity)
 
 	if err == sql.ErrNoRows {
@@ -131,8 +158,8 @@ func DecreaseCartItemQuantity(userID int64, productID int64, decreaseBy int) err
 		// Remove item if quantity would be zero or negative
 		_, err = tx.Exec(`
 			DELETE FROM cart_items 
-			WHERE UserID = ? AND ProductID = ?`,
-			userID, productID,
+			WHERE CartID = ? AND ProductID = ?`,
+			cartID, productID,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to remove item: %v", err)
@@ -142,12 +169,19 @@ func DecreaseCartItemQuantity(userID int64, productID int64, decreaseBy int) err
 		_, err = tx.Exec(`
 			UPDATE cart_items 
 			SET Quantity = ?
-			WHERE UserID = ? AND ProductID = ?`,
-			newQuantity, userID, productID,
+			WHERE CartID = ? AND ProductID = ?`,
+			newQuantity, cartID, productID,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to update quantity: %v", err)
 		}
+	}
+
+	// Update cart's UpdatedAt timestamp
+	_, err = tx.Exec("UPDATE carts SET UpdatedAt = datetime('now') WHERE CartID = ?", cartID)
+	if err != nil {
+		log.Printf("DecreaseCartItemQuantity: Failed to update cart timestamp: %v", err)
+		return fmt.Errorf("failed to update cart timestamp: %v", err)
 	}
 
 	// Commit transaction
@@ -161,6 +195,15 @@ func DecreaseCartItemQuantity(userID int64, productID int64, decreaseBy int) err
 
 // RemoveFromCart removes an item from the cart
 func RemoveFromCart(userID int64, productID int64) error {
+	log.Printf("RemoveFromCart: Starting for userID: %d, productID: %d", userID, productID)
+
+	// Get or create cart
+	cartID, err := GetOrCreateCart(userID)
+	if err != nil {
+		log.Printf("RemoveFromCart: Failed to get or create cart: %v", err)
+		return fmt.Errorf("failed to get or create cart: %v", err)
+	}
+
 	// Start transaction
 	tx, err := database.DB.Begin()
 	if err != nil {
@@ -176,8 +219,8 @@ func RemoveFromCart(userID int64, productID int64) error {
 	// Delete the item
 	result, err := tx.Exec(`
 		DELETE FROM cart_items 
-		WHERE UserID = ? AND ProductID = ?`,
-		userID, productID,
+		WHERE CartID = ? AND ProductID = ?`,
+		cartID, productID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to remove item: %v", err)
@@ -192,6 +235,13 @@ func RemoveFromCart(userID int64, productID int64) error {
 		return fmt.Errorf("item not found in cart")
 	}
 
+	// Update cart's UpdatedAt timestamp
+	_, err = tx.Exec("UPDATE carts SET UpdatedAt = datetime('now') WHERE CartID = ?", cartID)
+	if err != nil {
+		log.Printf("RemoveFromCart: Failed to update cart timestamp: %v", err)
+		return fmt.Errorf("failed to update cart timestamp: %v", err)
+	}
+
 	// Commit transaction
 	err = tx.Commit()
 	if err != nil {
@@ -203,6 +253,15 @@ func RemoveFromCart(userID int64, productID int64) error {
 
 // ClearCart removes all items from a user's cart
 func ClearCart(userID int64) error {
+	log.Printf("ClearCart: Starting for userID: %d", userID)
+
+	// Get or create cart
+	cartID, err := GetOrCreateCart(userID)
+	if err != nil {
+		log.Printf("ClearCart: Failed to get or create cart: %v", err)
+		return fmt.Errorf("failed to get or create cart: %v", err)
+	}
+
 	// Start transaction
 	tx, err := database.DB.Begin()
 	if err != nil {
@@ -215,10 +274,17 @@ func ClearCart(userID int64) error {
 		}
 	}()
 
-	// Delete all items for this user
-	_, err = tx.Exec("DELETE FROM cart_items WHERE UserID = ?", userID)
+	// Delete all items for this cart
+	_, err = tx.Exec("DELETE FROM cart_items WHERE CartID = ?", cartID)
 	if err != nil {
 		return fmt.Errorf("failed to clear cart: %v", err)
+	}
+
+	// Update cart's UpdatedAt timestamp
+	_, err = tx.Exec("UPDATE carts SET UpdatedAt = datetime('now') WHERE CartID = ?", cartID)
+	if err != nil {
+		log.Printf("ClearCart: Failed to update cart timestamp: %v", err)
+		return fmt.Errorf("failed to update cart timestamp: %v", err)
 	}
 
 	// Commit transaction

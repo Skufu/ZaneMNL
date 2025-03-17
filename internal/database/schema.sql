@@ -5,47 +5,33 @@ CREATE TABLE users (
     Email TEXT NOT NULL UNIQUE,
     Password TEXT NOT NULL,
     Role TEXT DEFAULT 'customer',
-    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    LastLogin DATETIME
+    CreatedAt TEXT DEFAULT (datetime('now')),
+    LastLogin TEXT
 );
 
 -- Products table
 CREATE TABLE products (
     ProductID INTEGER PRIMARY KEY AUTOINCREMENT,
-    Name TEXT NOT NULL,
+    Name TEXT NOT NULL UNIQUE,
     Description TEXT,
     Price REAL NOT NULL,
-    Stock INTEGER DEFAULT 0
-);
-
--- Payment methods table
-CREATE TABLE payment_methods (
-    PaymentMethodID INTEGER PRIMARY KEY AUTOINCREMENT,
-    Name TEXT,
-    AccountNumber TEXT,
-    AccountName TEXT
-);
-
--- Shipping addresses table
-CREATE TABLE shipping_addresses (
-    AddressID INTEGER PRIMARY KEY AUTOINCREMENT,
-    UserID INTEGER NOT NULL,
-    FullName TEXT,
-    PhoneNumber TEXT,
-    Address TEXT,
-    City TEXT,
-    Province TEXT,
-    PostalCode TEXT,
-    FOREIGN KEY (UserID) REFERENCES users(UserID)
+    ImageURL TEXT,
+    Stock INTEGER NOT NULL DEFAULT 0,
+    CreatedAt TEXT DEFAULT (datetime('now'))
 );
 
 -- Orders table
 CREATE TABLE orders (
     OrderID INTEGER PRIMARY KEY AUTOINCREMENT,
     UserID INTEGER NOT NULL,
+    Status TEXT NOT NULL DEFAULT 'pending',
+    ShippingAddress TEXT NOT NULL,
+    PaymentMethod TEXT NOT NULL,
     TotalAmount REAL NOT NULL,
-    Status TEXT DEFAULT 'pending',
-    OrderDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CreatedAt TEXT DEFAULT (datetime('now')),
+    PaymentVerified BOOLEAN NOT NULL DEFAULT 0,
+    PaymentReference TEXT,
+    TrackingNumber TEXT,
     FOREIGN KEY (UserID) REFERENCES users(UserID)
 );
 
@@ -64,26 +50,18 @@ CREATE TABLE order_details (
 CREATE TABLE order_history (
     HistoryID INTEGER PRIMARY KEY AUTOINCREMENT,
     OrderID INTEGER,
-    OldStatus TEXT,
-    NewStatus TEXT,
-    ChangedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    Note TEXT,
+    OldStatus TEXT NOT NULL,
+    NewStatus TEXT NOT NULL,
+    ChangedAt TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (OrderID) REFERENCES orders(OrderID)
 );
 
--- Cart table
-CREATE TABLE cart (
-    CartID INTEGER PRIMARY KEY AUTOINCREMENT,
+-- Cart items table
+CREATE TABLE cart_items (
+    CartItemID INTEGER PRIMARY KEY AUTOINCREMENT,
     UserID INTEGER NOT NULL,
-    FOREIGN KEY (UserID) REFERENCES users(UserID)
-);
-
--- Cart contents
-CREATE TABLE cart_contents (
-    CartContentID INTEGER PRIMARY KEY AUTOINCREMENT,
-    CartID INTEGER,
-    ProductID INTEGER,
-    Quantity INTEGER DEFAULT 1,
-    FOREIGN KEY (CartID) REFERENCES cart(CartID),
+    ProductID INTEGER NOT NULL,
+    Quantity INTEGER NOT NULL DEFAULT 1,
+    FOREIGN KEY (UserID) REFERENCES users(UserID),
     FOREIGN KEY (ProductID) REFERENCES products(ProductID)
 );

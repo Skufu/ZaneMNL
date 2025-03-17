@@ -3,7 +3,7 @@ const API_URL = 'http://localhost:8080';
 
 // Create a reusable fetch function with admin authentication
 const fetchWithAdminAuth = async (endpoint: string, options: RequestInit = {}): Promise<any> => {
-  const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+  const token = localStorage.getItem('token');
   
   if (!token) {
     throw new Error('Authentication required');
