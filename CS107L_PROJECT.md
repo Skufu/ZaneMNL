@@ -1,5 +1,158 @@
 # ZaneMNL E-Commerce Platform - CS107L Database Project
 
+## Table of Contents
+1. [Project Overview](#project-overview)
+2. [Setup Instructions](#setup-instructions)
+   - [Prerequisites Installation](#prerequisites-installation)
+   - [Database Setup](#database-setup)
+   - [Running the Application](#running-the-application)
+3. [SQLite3 Usage Guide](#sqlite3-usage-guide)
+4. [Database Design](#database-design)
+   - [Entity-Relationship Diagram](#entity-relationship-diagram-erd)
+   - [Database Schema](#database-schema)
+5. [Key SQL Operations](#key-sql-operations-demonstrated)
+6. [SQL Data Manipulation](#sql-data-manipulation-demonstrations)
+7. [Database Best Practices](#database-best-practices-demonstrated)
+8. [Technical Stack](#project-technical-stack)
+9. [Design Principles](#database-design-principles-applied)
+
+## Setup Instructions
+
+### Prerequisites Installation
+
+1. **Install Go (1.16 or higher)**
+   - Visit [Go Downloads](https://golang.org/dl/)
+   - Download and run the installer for Windows
+   - Verify installation: `go version`
+
+2. **Install SQLite3**
+   - Download SQLite Tools from [SQLite Download Page](https://www.sqlite.org/download.html)
+   - For Windows:
+     1. Download `sqlite-tools-win32-x86-*.zip`
+     2. Create a folder: `C:\sqlite`
+     3. Extract the downloaded files to `C:\sqlite`
+     4. Add to PATH:
+        - Open System Properties > Advanced > Environment Variables
+        - Add `C:\sqlite` to System PATH
+     5. Verify installation: `sqlite3 --version`
+
+3. **Install Node.js and npm**
+   - Download from [Node.js website](https://nodejs.org/)
+   - Choose LTS version
+   - Run the installer
+   - Verify installation:
+     ```bash
+     node --version
+     npm --version
+     ```
+
+4. **Install Git**
+   - Download from [Git website](https://git-scm.com/)
+   - Run the installer
+   - Verify installation: `git --version`
+
+### Database Setup
+
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/yourusername/ZaneMNL.git
+   cd ZaneMNL
+   ```
+
+2. **Initialize the Database**
+   ```bash
+   # The database will be automatically initialized when you run the server
+   # To manually access the database:
+   sqlite3 ./data/lab.db
+   ```
+
+### Running the Application
+
+1. **Start the Backend Server**
+   ```bash
+   # Navigate to project root
+   cd ZaneMNL
+
+   # Run the server
+   go run cmd/api/main.go
+   ```
+   The server will start on http://localhost:8080
+
+2. **Start the Frontend Application**
+   ```bash
+   # Open a new terminal
+   cd frontend
+
+   # Install dependencies
+   npm install
+
+   # Start the development server
+   npm start
+   ```
+   The frontend will open in your browser at http://localhost:3000
+
+## SQLite3 Usage Guide
+
+### Basic SQLite3 Commands
+
+1. **Open SQLite Console**
+   ```bash
+   # Navigate to project directory
+   cd ZaneMNL
+
+   # Open database
+   sqlite3 ./data/lab.db
+   ```
+
+2. **Essential SQLite Commands**
+   ```sql
+   -- Format output
+   .mode column   -- Display as formatted columns
+   .headers on    -- Show column headers
+   .width 15 10 30  -- Set column widths
+
+   -- Database information
+   .tables        -- List all tables
+   .schema        -- Show complete schema
+   .schema users  -- Show schema for specific table
+   .indexes       -- List all indexes
+
+   -- Export/Import
+   .output report.csv   -- Direct output to file
+   .mode csv            -- Set output mode to CSV
+   .dump                -- Backup database to SQL
+   .quit                -- Exit SQLite
+
+   -- Help
+   .help          -- Show all commands
+   ```
+
+3. **Useful Settings for Presentation**
+   ```sql
+   -- Pretty output configuration
+   .mode column
+   .headers on
+   .width 15 10 30
+   .nullvalue NULL
+   
+   -- Enable foreign keys
+   PRAGMA foreign_keys = ON;
+   
+   -- Show execution time
+   .timer on
+   ```
+
+4. **Common Issues and Solutions**
+   - If `sqlite3` command not found:
+     - Verify PATH environment variable
+     - Restart terminal/command prompt
+   - If database is locked:
+     - Close other connections
+     - Use `.quit` to properly close SQLite
+   - If changes not saving:
+     - Verify you're not in read-only mode
+     - Check disk permissions
+
 ## Project Overview
 ZaneMNL is an e-commerce platform specializing in cap merchandise, built using Go for the backend, React for the frontend, and SQLite for the database. This project demonstrates various database concepts and SQL manipulations learned in CS107L.
 
