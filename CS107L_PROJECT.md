@@ -198,52 +198,258 @@ WHERE TotalSpent > (
 );
 ```
 
-## Database Features Implemented
+## SQL Data Manipulation Demonstrations
 
-1. **Referential Integrity**
-   - Foreign key constraints
-   - Cascade delete protection
-   - Unique constraints
+### 1. Product Management
 
-2. **Transaction Management**
-   - ACID compliance
-   - Concurrent access handling
-   - Rollback support
-
-3. **Indexing**
-   - Primary key indexes
-   - Foreign key indexes
-   - Performance optimization
-
-4. **Data Validation**
-   - NOT NULL constraints
-   - Default values
-   - Check constraints
-
-5. **Audit Trail**
-   - Order history tracking
-   - Timestamp logging
-   - Status change monitoring
-
-## How to Run SQL Demonstrations
-
-1. Start the backend server:
-```bash
-go run cmd/api/main.go
-```
-
-2. Access the SQLite database directly:
-```bash
-sqlite3 ./data/lab.db
-```
-
-3. Common SQLite commands for demonstration:
+#### A. Adding Products
 ```sql
-.tables           -- List all tables
-.schema [table]   -- Show table schema
-.headers on       -- Enable column headers
-.mode column      -- Pretty print results
+-- Add a single new product
+INSERT INTO products (Name, Description, Price, Stock, ImageURL)
+VALUES ('Miami Heat Snapback', 'Official NBA Miami Heat Cap', 1299.99, 30, 'https://example.com/heat-cap.jpg');
+
+-- Add multiple products in one command
+INSERT INTO products (Name, Description, Price, Stock, ImageURL) VALUES 
+    ('Boston Celtics Cap', 'Green Classic Snapback', 1199.99, 25, 'https://example.com/celtics-cap.jpg'),
+    ('Lakers Purple Cap', 'LA Lakers Special Edition', 1399.99, 20, 'https://example.com/lakers-cap.jpg');
 ```
+
+#### B. Viewing Products
+```sql
+-- Basic product listing
+SELECT * FROM products;
+
+-- Formatted product display
+SELECT 
+    ProductID,
+    Name,
+    printf("₱%.2f", Price) as Price,
+    Stock,
+    CreatedAt
+FROM products;
+
+-- Low stock alerts
+SELECT Name, Stock 
+FROM products 
+WHERE Stock < 10
+ORDER BY Stock ASC;
+```
+
+#### C. Updating Products
+```sql
+-- Update single field
+UPDATE products 
+SET Price = 1599.99 
+WHERE Name = 'New Era Yankees Cap';
+
+-- Update multiple fields
+UPDATE products 
+SET 
+    Description = 'Limited Edition Yankees Cap',
+    Price = 1799.99,
+    Stock = Stock + 10
+WHERE Name = 'New Era Yankees Cap';
+
+-- Bulk price increase (10% for all products)
+UPDATE products 
+SET Price = Price * 1.10;
+```
+
+#### D. Deleting Products
+```sql
+-- Remove specific product
+DELETE FROM products 
+WHERE ProductID = 1;
+
+-- Remove out-of-stock products
+DELETE FROM products 
+WHERE Stock = 0;
+
+-- Remove products not sold in last 30 days
+DELETE FROM products 
+WHERE ProductID NOT IN (
+    SELECT DISTINCT ProductID 
+    FROM order_details od 
+    JOIN orders o ON od.OrderID = o.OrderID 
+    WHERE o.CreatedAt >= datetime('now', '-30 days')
+);
+```
+
+### 2. Sales and Inventory Analysis
+
+#### A. Product Performance Analysis
+```sql
+-- Sales performance by product
+SELECT 
+    p.Name,
+    p.Price as CurrentPrice,
+    COUNT(DISTINCT o.OrderID) as OrderCount,
+    SUM(od.Quantity) as UnitsSold,
+    printf("₱%.2f", SUM(od.Quantity * od.Price)) as TotalRevenue
+FROM products p
+LEFT JOIN order_details od ON p.ProductID = od.ProductID
+LEFT JOIN orders o ON od.OrderID = o.OrderID
+GROUP BY p.ProductID
+ORDER BY UnitsSold DESC;
+
+-- Price point analysis
+SELECT 
+    CASE 
+        WHEN Price < 1000 THEN 'Budget (Under ₱1000)'
+        WHEN Price < 1500 THEN 'Mid-range (₱1000-₱1500)'
+        ELSE 'Premium (₱1500+)'
+    END as PriceCategory,
+    COUNT(*) as ProductCount,
+    printf("₱%.2f", AVG(Price)) as AveragePrice
+FROM products
+GROUP BY PriceCategory;
+```
+
+#### B. Inventory Management
+```sql
+-- Stock level report
+SELECT 
+    Name,
+    Stock,
+    CASE 
+        WHEN Stock = 0 THEN 'Out of Stock'
+        WHEN Stock < 10 THEN 'Low Stock'
+        WHEN Stock < 30 THEN 'Moderate Stock'
+        ELSE 'Good Stock'
+    END as StockStatus
+FROM products
+ORDER BY Stock ASC;
+
+-- Reorder suggestion report
+SELECT 
+    p.Name,
+    p.Stock as CurrentStock,
+    COALESCE(SUM(od.Quantity), 0) as MonthlyDemand,
+    CASE 
+        WHEN p.Stock < COALESCE(SUM(od.Quantity), 0) * 0.5 
+        THEN 'Reorder Needed'
+        ELSE 'Stock Adequate'
+    END as ReorderStatus
+FROM products p
+LEFT JOIN order_details od ON p.ProductID = od.ProductID
+LEFT JOIN orders o ON od.OrderID = o.OrderID
+WHERE o.CreatedAt >= datetime('now', '-30 days')
+GROUP BY p.ProductID;
+```
+
+### 3. Transaction Examples
+
+#### A. Processing a New Order
+```sql
+BEGIN TRANSACTION;
+    -- Create new order
+    INSERT INTO orders (UserID, TotalAmount, Status) 
+    VALUES (1, 2999.98, 'pending');
+    
+    -- Get the new order ID
+    SELECT last_insert_rowid();
+    
+    -- Add order details
+    INSERT INTO order_details (OrderID, ProductID, Quantity, Price)
+    VALUES 
+        (last_insert_rowid(), 1, 2, 1499.99);
+    
+    -- Update product stock
+    UPDATE products 
+    SET Stock = Stock - 2
+    WHERE ProductID = 1;
+    
+    -- Verify stock didn't go negative
+    SELECT Stock FROM products WHERE ProductID = 1;
+    
+    -- If everything is okay
+    COMMIT;
+    -- If there's an issue
+    -- ROLLBACK;
+```
+
+#### B. Canceling an Order
+```sql
+BEGIN TRANSACTION;
+    -- Store order details for stock restoration
+    CREATE TEMPORARY TABLE temp_restore AS
+    SELECT ProductID, Quantity
+    FROM order_details
+    WHERE OrderID = ?;
+    
+    -- Restore stock
+    UPDATE products
+    SET Stock = Stock + (
+        SELECT Quantity 
+        FROM temp_restore 
+        WHERE ProductID = products.ProductID
+    )
+    WHERE ProductID IN (SELECT ProductID FROM temp_restore);
+    
+    -- Update order status
+    UPDATE orders 
+    SET Status = 'cancelled' 
+    WHERE OrderID = ?;
+    
+    -- Add to order history
+    INSERT INTO order_history (OrderID, OldStatus, NewStatus)
+    VALUES (?, 'pending', 'cancelled');
+    
+    DROP TABLE temp_restore;
+COMMIT;
+```
+
+## Common SQLite Commands for Presentation
+
+```sql
+-- Start SQLite with the database
+sqlite3 ./data/lab.db
+
+-- Configure output format
+.headers on       -- Show column headers
+.mode column     -- Align output in columns
+.width 15 10 30  -- Set column widths
+
+-- Useful commands
+.tables          -- List all tables
+.schema products -- Show table schema
+.indexes         -- List all indexes
+.quit           -- Exit SQLite
+
+-- Export results to CSV (useful for analysis)
+.mode csv
+.output report.csv
+SELECT * FROM products;
+.output stdout
+```
+
+## Database Best Practices Demonstrated
+
+1. **Data Integrity**
+   - Use of transactions for multi-step operations
+   - Foreign key constraints
+   - NOT NULL constraints where appropriate
+   - UNIQUE constraints for business rules
+   - DEFAULT values for standard fields
+
+2. **Performance Optimization**
+   - Proper indexing on frequently queried fields
+   - Efficient JOIN operations
+   - Prepared statements for repeated queries
+   - Transaction management for bulk operations
+
+3. **Security**
+   - Input validation
+   - Parameterized queries
+   - Role-based access control
+   - Password hashing
+   - Audit trailing
+
+4. **Maintainability**
+   - Consistent naming conventions
+   - Clear table relationships
+   - Documented constraints
+   - Version control for schema changes
 
 ## Project Technical Stack
 
