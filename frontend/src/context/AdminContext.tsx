@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login as apiLogin } from '../services/api';
+import { adminLogin } from '../services/admin-api';
 
 interface AdminUser {
   id: number;
@@ -44,47 +44,40 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // Use the real login API
-      const response = await apiLogin(email, password);
+      // Use the admin login API
+      const response = await adminLogin(email, password);
       
       if (response && response.token) {
-        // Check if the user is an admin
-        if (response.role === 'admin') {
-          const adminUser: AdminUser = {
-            id: response.user_id || 1,
-            username: response.username || 'admin',
-            email: email,
-            role: 'Administrator'
-          };
-          
-          // Store admin data in localStorage
-          localStorage.setItem('isAdmin', 'true');
-          localStorage.setItem('adminUser', JSON.stringify(adminUser));
-          
-          // Update state
-          setAdminUser(adminUser);
-          setIsAdmin(true);
-          
-          return true;
-        } else {
-          // Not an admin
-          return false;
-        }
+        // The adminLogin function already stores the token and user data
+        // Just update the state
+        const userData = response.user;
+        
+        const adminUser: AdminUser = {
+          id: userData.user_id || userData.UserID || 1,
+          username: userData.username || userData.Username || 'admin',
+          email: userData.email || userData.Email || email,
+          role: userData.role || userData.Role || 'Administrator'
+        };
+        
+        // Update state
+        setAdminUser(adminUser);
+        setIsAdmin(true);
+        
+        return true;
       }
       
       return false;
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('Admin login failed:', error);
       return false;
     }
   };
 
   const checkAdminStatus = (): boolean => {
-    const token = localStorage.getItem('token');
-    const adminFlag = localStorage.getItem('isAdmin');
+    const token = localStorage.getItem('adminToken');
     const adminUserData = localStorage.getItem('adminUser');
 
-    if (!token || adminFlag !== 'true') {
+    if (!token || !adminUserData) {
       setIsAdmin(false);
       setAdminUser(null);
       setLoading(false);
@@ -110,8 +103,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('isAdmin');
+    localStorage.removeItem('adminToken');
     localStorage.removeItem('adminUser');
     setIsAdmin(false);
     setAdminUser(null);

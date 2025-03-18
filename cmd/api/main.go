@@ -7,6 +7,7 @@ import (
 	"go_module/internal/database"
 	"go_module/internal/handlers"
 	"go_module/internal/middleware"
+	"go_module/internal/models"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -15,6 +16,11 @@ import (
 func main() {
 	// Initialize SQLite database (stored in ./data/lab.db)
 	database.InitDB()
+
+	// Ensure admin user exists
+	if err := models.EnsureAdminExists(); err != nil {
+		log.Printf("Warning: Failed to ensure admin exists: %v", err)
+	}
 
 	// Create Gin router with default middleware
 	r := gin.Default()

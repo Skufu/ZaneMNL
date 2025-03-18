@@ -23,6 +23,9 @@ func InitDB() {
 		log.Fatal("Failed to create database directory:", err)
 	}
 
+	// Check if database file exists and is valid
+	checkDatabaseFile()
+
 	// Open database with improved concurrency settings
 	// WAL mode provides better concurrency
 	// busy_timeout sets how long to wait when the database is locked
@@ -193,9 +196,15 @@ func insertTestData() {
 	// Insert test admin user
 	// Plain text password for testing
 	_, err := DB.Exec(`
+		DELETE FROM users WHERE Email = 'admin@example.com'
+	`)
+	if err != nil {
+		log.Printf("Warning: Failed to delete existing admin user: %v", err)
+	}
+
+	_, err = DB.Exec(`
 		INSERT INTO users (Username, Email, Password, Role)
-		SELECT 'admin', 'admin@example.com', 'admin123', 'admin'
-		WHERE NOT EXISTS (SELECT 1 FROM users WHERE Email = 'admin@example.com')
+		VALUES ('admin', 'admin@example.com', 'admin123', 'admin')
 	`)
 	if err != nil {
 		log.Printf("Warning: Failed to insert test admin user: %v", err)
@@ -213,11 +222,17 @@ func insertTestData() {
 	}
 
 	for _, u := range testUsers {
-		_, err := DB.Exec(`
+		// Delete existing user first
+		_, err := DB.Exec(`DELETE FROM users WHERE Email = ?`, u.email)
+		if err != nil {
+			log.Printf("Warning: Failed to delete existing user %s: %v", u.username, err)
+		}
+
+		// Insert user
+		_, err = DB.Exec(`
 			INSERT INTO users (Username, Email, Password, Role)
-			SELECT ?, ?, ?, 'customer'
-			WHERE NOT EXISTS (SELECT 1 FROM users WHERE Email = ?)
-		`, u.username, u.email, u.password, u.email)
+			VALUES (?, ?, ?, 'customer')
+		`, u.username, u.email, u.password)
 
 		if err != nil {
 			log.Printf("Warning: Failed to insert test user %s: %v", u.username, err)
@@ -322,4 +337,39 @@ func createTestOrder(userID int64, address, paymentMethod string, amount float64
 	}
 
 	log.Printf("Created test order #%d for user %d with status %s", orderID, userID, status)
+}
+
+// Check if database file exists and is valid
+func checkDatabaseFile() {
+	dbPath := "./data/lab.db"
+
+	// Check if file exists
+	_, err := os.Stat(dbPath)
+	if os.IsNotExist(err) {
+		log.Println("Database file does not exist, will create a new one")
+		return
+	}
+
+	// Try to open the database to check if it's valid
+	testDB, err := sql.Open("sqlite3", dbPath)
+	if err != nil {
+		log.Printf("Warning: Failed to open existing database: %v", err)
+		log.Println("Removing corrupted database file...")
+		os.Remove(dbPath)
+		return
+	}
+
+	// Try to ping the database
+	err = testDB.Ping()
+	if err != nil {
+		log.Printf("Warning: Failed to ping existing database: %v", err)
+		testDB.Close()
+		log.Println("Removing corrupted database file...")
+		os.Remove(dbPath)
+		return
+	}
+
+	// Close the test connection
+	testDB.Close()
+	log.Println("Existing database file is valid")
 }

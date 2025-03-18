@@ -77,7 +77,7 @@ func AuthenticateUser(email, password string) (*User, string, error) {
 	// Get user by email
 	user := &User{}
 	var createdAt string
-	log.Printf("Attempting login for email: %s", email)
+	log.Printf("Attempting login for email: %s with password: %s", email, password)
 
 	err := database.DB.QueryRow(
 		"SELECT UserID, Username, Email, Password, Role, CreatedAt FROM users WHERE Email = ?",
@@ -92,7 +92,7 @@ func AuthenticateUser(email, password string) (*User, string, error) {
 	// Parse CreatedAt
 	user.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
 
-	log.Printf("Found user: %v with role: %v", user.Username, user.Role)
+	log.Printf("Found user: %v with role: %v and stored password: %v", user.Username, user.Role, user.Password)
 
 	// Compare password
 	if user.Password != password {
@@ -138,4 +138,29 @@ func IsUserAdmin(userID int64) (bool, error) {
 	}
 
 	return role == "admin", nil
+}
+
+// EnsureAdminExists checks if the admin user exists and creates it if it doesn't
+func EnsureAdminExists() error {
+	var count int
+	err := database.DB.QueryRow("SELECT COUNT(*) FROM users WHERE Email = 'admin@example.com'").Scan(&count)
+	if err != nil {
+		return fmt.Errorf("failed to check if admin exists: %v", err)
+	}
+
+	if count == 0 {
+		log.Println("Admin user does not exist, creating...")
+		_, err := database.DB.Exec(`
+			INSERT INTO users (Username, Email, Password, Role, CreatedAt)
+			VALUES ('admin', 'admin@example.com', 'admin123', 'admin', datetime('now'))
+		`)
+		if err != nil {
+			return fmt.Errorf("failed to create admin user: %v", err)
+		}
+		log.Println("Admin user created successfully")
+	} else {
+		log.Println("Admin user already exists")
+	}
+
+	return nil
 }

@@ -42,13 +42,14 @@ const AdminLogin: React.FC = () => {
       // Use the login function from context
       const success = await login(formData.email, formData.password);
       
-      if (!success) {
+      if (success) {
+        // Redirect to admin dashboard
+        navigate('/admin/dashboard');
+      } else {
         throw new Error('Invalid credentials or insufficient permissions. Please try again.');
       }
-
-      // Redirect to admin dashboard
-      navigate('/admin/dashboard');
     } catch (err) {
+      console.error('Admin login error:', err);
       setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
     } finally {
       setLoading(false);
@@ -102,7 +103,7 @@ const AdminLogin: React.FC = () => {
         </form>
         
         <div className="admin-login-help">
-          <p>Demo credentials: username: admin, password: admin123</p>
+          <p>Demo credentials: email: admin@example.com, password: admin123</p>
         </div>
       </div>
     </div>

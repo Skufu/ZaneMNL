@@ -3,10 +3,12 @@ const API_URL = 'http://localhost:8080';
 
 // Create a reusable fetch function with admin authentication
 const fetchWithAdminAuth = async (endpoint: string, options: RequestInit = {}): Promise<any> => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('adminToken');
   
   if (!token) {
-    throw new Error('Authentication required');
+    // Redirect to login page if no token is found
+    window.location.href = '/admin/login';
+    throw new Error('Admin authentication required');
   }
   
   // Create headers object properly
@@ -15,7 +17,7 @@ const fetchWithAdminAuth = async (endpoint: string, options: RequestInit = {}): 
   headers.set('Authorization', `Bearer ${token}`);
   
   try {
-    console.log(`Fetching from ${API_URL}${endpoint}`);
+    console.log(`Admin API: Fetching from ${API_URL}${endpoint}`);
     const response = await fetch(`${API_URL}${endpoint}`, {
       ...options,
       headers
@@ -23,19 +25,29 @@ const fetchWithAdminAuth = async (endpoint: string, options: RequestInit = {}): 
     
     // Check if response is ok before trying to parse JSON
     if (!response.ok) {
+      // Handle authentication errors
+      if (response.status === 401 || response.status === 403) {
+        console.error('Admin authentication failed or expired');
+        // Clear invalid tokens
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminUser');
+        // Redirect to login page
+        window.location.href = '/admin/login';
+        throw new Error('Authentication failed. Please log in again.');
+      }
+      
       let errorText = '';
       try {
         errorText = await response.text();
       } catch (e) {
         errorText = 'Could not read error response';
       }
-      console.error(`Request failed: ${response.status} ${errorText}`);
+      console.error(`Admin API request failed: ${response.status} ${errorText}`);
       throw new Error(`Request failed: ${response.status} ${errorText}`);
     }
     
     // Try to parse the response as JSON
     try {
-      const clone = response.clone();
       const text = await response.text();
       
       if (!text || text.trim() === '') {
@@ -57,7 +69,7 @@ const fetchWithAdminAuth = async (endpoint: string, options: RequestInit = {}): 
       return {};
     }
   } catch (error) {
-    console.error(`API Error (${endpoint}):`, error);
+    console.error(`Admin API Error (${endpoint}):`, error);
     throw error;
   }
 };
