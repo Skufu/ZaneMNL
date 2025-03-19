@@ -6,31 +6,40 @@
 
 .products-header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 3rem;
 }
 
 .products-header h1 {
-  font-size: 2.5rem;
-  margin-bottom: 0.5rem;
+  font-size: 2.8rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  letter-spacing: -0.5px;
 }
 
 .products-header p {
-  font-size: 1.1rem;
-  color: #666;
+  font-size: 1.2rem;
+  color: #b0b0b0;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .products-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 2rem;
+  padding: 1rem 0;
 }
 
 .loading,
 .error-message,
 .no-products {
   text-align: center;
-  padding: 3rem;
-  font-size: 1.2rem;
+  padding: 2rem;
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  margin: 2rem 0;
+  color: #ffffff;
+  border: 1px solid #333;
 }
 
 .loading {
@@ -38,21 +47,55 @@
 }
 
 .error-message {
-  color: #e63946;
+  color: #ff6b6b;
 }
 
 .no-products {
-  color: #666;
+  color: #b0b0b0;
+}
+
+/* Category Filter */
+.product-filters {
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.filter-btn {
+  padding: 0.75rem 1.5rem;
+  background-color: #1a1a1a;
+  color: #ffffff;
+  border: 1px solid #333;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.filter-btn.active {
+  background-color: #ffffff;
+  color: #121212;
+  border-color: #ffffff;
+}
+
+.filter-btn:hover {
+  background-color: #333;
+}
+
+.filter-btn.active:hover {
+  background-color: #e0e0e0;
 }
 
 @media (max-width: 768px) {
   .products-grid {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 1.5rem;
   }
   
   .products-header h1 {
-    font-size: 2rem;
+    font-size: 2.2rem;
   }
 }
 

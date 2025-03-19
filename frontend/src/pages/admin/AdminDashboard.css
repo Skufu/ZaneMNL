@@ -10,20 +10,27 @@
   align-items: center;
   justify-content: center;
   min-height: 400px;
+  color: #ffffff;
 }
 
 .dashboard-error {
-  color: #e74c3c;
+  color: #ffffff;
 }
 
 .dashboard-error button {
   margin-top: 1rem;
   padding: 0.5rem 1.5rem;
-  background-color: #3498db;
-  color: white;
+  background-color: #ffffff;
+  color: #000000;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dashboard-error button:hover {
+  background-color: #e0e0e0;
+  transform: translateY(-2px);
 }
 
 /* Dashboard Cards */
@@ -34,13 +41,14 @@
 }
 
 .dashboard-card {
-  background-color: white;
+  background-color: #0a0a0a;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   padding: 1.5rem;
   display: flex;
   align-items: center;
   gap: 1.25rem;
+  border: 1px solid #333;
 }
 
 .card-icon {
@@ -51,26 +59,14 @@
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
+  background-color: #151515;
+  color: #ffffff;
+  border: 1px solid #333;
 }
 
-.orders-icon {
-  background-color: rgba(52, 152, 219, 0.1);
-  color: #3498db;
-}
-
-.revenue-icon {
-  background-color: rgba(46, 204, 113, 0.1);
-  color: #2ecc71;
-}
-
-.products-icon {
-  background-color: rgba(155, 89, 182, 0.1);
-  color: #9b59b6;
-}
-
-.users-icon {
-  background-color: rgba(241, 196, 15, 0.1);
-  color: #f1c40f;
+.orders-icon, .revenue-icon, .products-icon, .users-icon {
+  background-color: #151515;
+  color: #ffffff;
 }
 
 .card-content {
@@ -79,28 +75,29 @@
 
 .card-content h3 {
   font-size: 0.9rem;
-  color: #7f8c8d;
+  color: #cccccc;
   margin: 0 0 0.5rem 0;
 }
 
 .card-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #2c3e50;
+  color: #ffffff;
   margin: 0;
 }
 
 /* Dashboard Sections */
 .dashboard-section {
-  background-color: white;
+  background-color: #0a0a0a;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   padding: 1.5rem;
+  border: 1px solid #333;
 }
 
 .dashboard-section h2 {
   font-size: 1.25rem;
-  color: #2c3e50;
+  color: #ffffff;
   margin: 0 0 1.5rem 0;
 }
 
@@ -116,16 +113,16 @@
 .dashboard-table th {
   text-align: left;
   padding: 0.75rem 1rem;
-  border-bottom: 2px solid #ecf0f1;
-  color: #7f8c8d;
+  border-bottom: 2px solid #333;
+  color: #cccccc;
   font-weight: 600;
   font-size: 0.9rem;
 }
 
 .dashboard-table td {
   padding: 1rem;
-  border-bottom: 1px solid #ecf0f1;
-  color: #2c3e50;
+  border-bottom: 1px solid #333;
+  color: #ffffff;
 }
 
 .dashboard-table tr:last-child td {
@@ -134,7 +131,7 @@
 
 .no-data {
   text-align: center;
-  color: #95a5a6;
+  color: #cccccc;
   font-style: italic;
   padding: 2rem 1rem;
 }
@@ -146,31 +143,15 @@
   font-size: 0.85rem;
   font-weight: 600;
   text-transform: capitalize;
+  background-color: #333;
+  color: #ffffff;
+  border: 1px solid #444;
 }
 
-.status-pending {
-  background-color: #ffeeba;
-  color: #856404;
-}
-
-.status-processing {
-  background-color: #b8daff;
-  color: #004085;
-}
-
-.status-shipped {
-  background-color: #c3e6cb;
-  color: #155724;
-}
-
-.status-delivered {
-  background-color: #d4edda;
-  color: #155724;
-}
-
-.status-cancelled {
-  background-color: #f5c6cb;
-  color: #721c24;
+.status-pending, .status-processing, .status-shipped, .status-delivered, .status-cancelled {
+  background-color: #333;
+  color: #ffffff;
+  border: 1px solid #444;
 }
 
 /* Responsive adjustments */

@@ -19,9 +19,11 @@
 .search-input {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 1px solid #ddd;
+  border: 1px solid #333;
   border-radius: 4px;
   font-size: 0.95rem;
+  background-color: #151515;
+  color: #ffffff;
 }
 
 .filter-container {
@@ -32,15 +34,16 @@
 
 .filter-container label {
   font-weight: 600;
-  color: #495057;
+  color: #ffffff;
 }
 
 .status-filter {
   padding: 0.75rem 1rem;
-  border: 1px solid #ddd;
+  border: 1px solid #333;
   border-radius: 4px;
   font-size: 0.95rem;
-  background-color: white;
+  background-color: #151515;
+  color: #ffffff;
 }
 
 .orders-loading, .orders-error {
@@ -49,14 +52,15 @@
   align-items: center;
   justify-content: center;
   min-height: 300px;
+  color: #ffffff;
 }
 
 .loading-spinner {
   width: 50px;
   height: 50px;
-  border: 5px solid rgba(0, 0, 0, 0.1);
+  border: 5px solid rgba(255, 255, 255, 0.1);
   border-radius: 50%;
-  border-top-color: #3498db;
+  border-top-color: #ffffff;
   animation: spin 1s ease-in-out infinite;
   margin-bottom: 1rem;
 }
@@ -68,17 +72,23 @@
 }
 
 .orders-error {
-  color: #e74c3c;
+  color: #ffffff;
 }
 
 .orders-error button {
   margin-top: 1rem;
   padding: 0.5rem 1.5rem;
-  background-color: #3498db;
-  color: white;
+  background-color: #ffffff;
+  color: #000000;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.orders-error button:hover {
+  background-color: #e0e0e0;
+  transform: translateY(-2px);
 }
 
 .orders-list {
@@ -88,10 +98,11 @@
 }
 
 .order-card {
-  background-color: white;
+  background-color: #0a0a0a;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   overflow: hidden;
+  border: 1px solid #333;
 }
 
 .order-header {
@@ -99,8 +110,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.25rem;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
+  background-color: #151515;
+  border-bottom: 1px solid #333;
 }
 
 .order-info {
@@ -112,12 +123,12 @@
 .order-number {
   font-weight: 600;
   font-size: 1.1rem;
-  color: #333;
+  color: #ffffff;
 }
 
 .order-date {
   font-size: 0.9rem;
-  color: #666;
+  color: #cccccc;
 }
 
 .order-meta {
@@ -133,65 +144,51 @@
   font-size: 0.85rem;
   font-weight: 600;
   text-transform: capitalize;
+  background-color: #333;
+  color: #ffffff;
+  border: 1px solid #444;
 }
 
-.status-pending {
-  background-color: #ffeeba;
-  color: #856404;
-}
-
-.status-processing {
-  background-color: #b8daff;
-  color: #004085;
-}
-
-.status-shipped {
-  background-color: #c3e6cb;
-  color: #155724;
-}
-
-.status-delivered {
-  background-color: #d4edda;
-  color: #155724;
-}
-
-.status-cancelled {
-  background-color: #f5c6cb;
-  color: #721c24;
+.status-pending, .status-processing, .status-shipped, .status-delivered, .status-cancelled {
+  background-color: #333;
+  color: #ffffff;
+  border: 1px solid #444;
 }
 
 .order-total {
   font-weight: 700;
   font-size: 1.1rem;
-  color: #333;
+  color: #ffffff;
 }
 
 .order-summary {
   display: flex;
   flex-wrap: wrap;
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid #333;
   gap: 1.5rem;
 }
 
 .order-summary-item {
   display: flex;
   gap: 0.5rem;
+  color: #cccccc;
 }
 
 .order-summary-item span:first-child {
   font-weight: 600;
-  color: #666;
+  color: #ffffff;
 }
 
 .verified {
-  color: #28a745;
+  color: #ffffff;
   font-weight: 600;
 }
 
 .not-verified {
-  color: #dc3545;
+  color: #ffffff;
   font-weight: 600;
+  text-decoration: line-through;
 }
 
 .order-actions {
@@ -199,22 +196,22 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid #333;
 }
 
 .toggle-details-btn {
   padding: 0.5rem 1rem;
-  background-color: #e9ecef;
-  color: #495057;
-  border: none;
+  background-color: #151515;
+  color: #ffffff;
+  border: 1px solid #333;
   border-radius: 4px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
 }
 
 .toggle-details-btn:hover {
-  background-color: #dee2e6;
+  background-color: #333;
 }
 
 .status-update {
@@ -225,24 +222,26 @@
 
 .status-select {
   padding: 0.5rem 1rem;
-  border: 1px solid #ced4da;
+  border: 1px solid #333;
   border-radius: 4px;
   font-size: 0.95rem;
-  background-color: white;
+  background-color: #151515;
+  color: #ffffff;
 }
 
 .updating-status {
   font-size: 0.85rem;
-  color: #6c757d;
+  color: #cccccc;
   font-style: italic;
 }
 
 .order-details {
   padding: 1.5rem;
-  background-color: #f8f9fa;
+  background-color: #151515;
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  border-top: 1px solid #333;
 }
 
 .order-items h3,
@@ -250,29 +249,31 @@
   margin-top: 0;
   margin-bottom: 1rem;
   font-size: 1.2rem;
-  color: #2c3e50;
+  color: #ffffff;
 }
 
 .items-table {
   width: 100%;
   border-collapse: collapse;
-  background-color: white;
+  background-color: #0a0a0a;
   border-radius: 4px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  border: 1px solid #333;
 }
 
 .items-table th,
 .items-table td {
   padding: 0.75rem 1rem;
   text-align: left;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid #333;
+  color: #ffffff;
 }
 
 .items-table th {
-  background-color: #f8f9fa;
+  background-color: #151515;
   font-weight: 600;
-  color: #495057;
+  color: #cccccc;
 }
 
 .items-table tbody tr:last-child td {
@@ -281,7 +282,7 @@
 
 .items-table tfoot {
   font-weight: 700;
-  background-color: #f8f9fa;
+  background-color: #151515;
 }
 
 .info-section {
@@ -292,18 +293,19 @@
   margin-top: 0;
   margin-bottom: 0.5rem;
   font-size: 1rem;
-  color: #495057;
+  color: #ffffff;
 }
 
 .address {
   white-space: pre-line;
   line-height: 1.5;
+  color: #cccccc;
 }
 
 .payment-verification {
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px dashed #dee2e6;
+  border-top: 1px dashed #333;
 }
 
 .verification-form {
@@ -315,38 +317,44 @@
 .reference-input {
   flex: 1;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #ced4da;
+  border: 1px solid #333;
   border-radius: 4px;
   font-size: 0.9rem;
+  background-color: #151515;
+  color: #ffffff;
 }
 
 .verify-btn {
   padding: 0.5rem 1rem;
-  background-color: #28a745;
-  color: white;
+  background-color: #ffffff;
+  color: #000000;
   border: none;
   border-radius: 4px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
 }
 
 .verify-btn:hover {
-  background-color: #218838;
+  background-color: #e0e0e0;
+  transform: translateY(-2px);
 }
 
 .verify-btn:disabled {
-  background-color: #6c757d;
+  background-color: #444;
+  color: #777;
   cursor: not-allowed;
+  transform: none;
 }
 
 .no-orders {
   text-align: center;
   padding: 3rem 1rem;
-  background-color: white;
+  background-color: #0a0a0a;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  color: #6c757d;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  color: #cccccc;
+  border: 1px solid #333;
 }
 
 /* Responsive adjustments */

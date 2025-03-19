@@ -1,7 +1,7 @@
 .admin-layout {
   display: flex;
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background-color: #000000;
 }
 
 .admin-content {
@@ -12,15 +12,16 @@
 }
 
 .admin-header {
-  background-color: white;
+  background-color: #0a0a0a;
   padding: 1.25rem 2rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   z-index: 10;
+  border-bottom: 1px solid #333;
 }
 
 .admin-header h1 {
   font-size: 1.5rem;
-  color: #333;
+  color: #ffffff;
   margin: 0;
 }
 
@@ -36,15 +37,15 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background-color: #000000;
 }
 
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid rgba(0, 0, 0, 0.1);
+  border: 4px solid rgba(255, 255, 255, 0.1);
   border-radius: 50%;
-  border-top-color: #3498db;
+  border-top-color: #ffffff;
   animation: spin 1s ease-in-out infinite;
   margin-bottom: 1rem;
 }

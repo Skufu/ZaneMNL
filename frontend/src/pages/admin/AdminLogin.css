@@ -3,17 +3,18 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background-color: #000000;
   padding: 2rem;
 }
 
 .admin-login-card {
   width: 100%;
   max-width: 450px;
-  background-color: white;
+  background-color: #0a0a0a;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   padding: 2.5rem;
+  border: 1px solid #333;
 }
 
 .admin-login-header {
@@ -23,22 +24,24 @@
 
 .admin-login-header h1 {
   font-size: 1.8rem;
-  color: #333;
+  color: #ffffff;
   margin-bottom: 0.5rem;
+  font-weight: 700;
 }
 
 .admin-login-header p {
-  color: #666;
+  color: #cccccc;
   font-size: 0.95rem;
 }
 
 .admin-login-error {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: #1a1a1a;
+  color: #ffffff;
   padding: 0.75rem 1rem;
   border-radius: 4px;
   margin-bottom: 1.5rem;
   font-size: 0.9rem;
+  border: 1px solid #444;
 }
 
 .admin-login-form {
@@ -56,53 +59,60 @@
 .form-group label {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #333;
+  color: #ffffff;
 }
 
 .form-group input {
   padding: 0.75rem;
-  border: 1px solid #ddd;
+  border: 1px solid #333;
   border-radius: 4px;
   font-size: 1rem;
   transition: border-color 0.2s;
+  background-color: #151515;
+  color: #ffffff;
 }
 
 .form-group input:focus {
-  border-color: #3498db;
+  border-color: #ffffff;
   outline: none;
 }
 
 .admin-login-button {
   margin-top: 1rem;
   padding: 0.85rem;
-  background-color: #3498db;
-  color: white;
+  background-color: #ffffff;
+  color: #000000;
   border: none;
   border-radius: 4px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .admin-login-button:hover {
-  background-color: #2980b9;
+  background-color: #e0e0e0;
+  transform: translateY(-2px);
 }
 
 .admin-login-button:disabled {
-  background-color: #95a5a6;
+  background-color: #444;
+  color: #777;
   cursor: not-allowed;
+  transform: none;
 }
 
 .admin-login-help {
   margin-top: 1.5rem;
   text-align: center;
   padding-top: 1.5rem;
-  border-top: 1px solid #eee;
+  border-top: 1px solid #333;
 }
 
 .admin-login-help p {
-  color: #7f8c8d;
+  color: #cccccc;
   font-size: 0.85rem;
   font-style: italic;
 } 
