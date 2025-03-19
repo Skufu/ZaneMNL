@@ -161,28 +161,43 @@ func insertTestData() {
 			name:        "New Era Yankees Cap",
 			description: "Official New York Yankees Baseball Cap",
 			price:       1499.99,
-			imageURL:    "https://example.com/yankees-cap.jpg",
+			imageURL:    "/assets/zane1.png",
 			stock:       50,
 		},
 		{
 			name:        "LA Dodgers Fitted Cap",
 			description: "Official LA Dodgers Baseball Cap - Navy Blue",
 			price:       1299.99,
-			imageURL:    "https://example.com/dodgers-cap.jpg",
+			imageURL:    "/assets/zane5.png",
 			stock:       50,
 		},
 		{
 			name:        "Chicago Bulls Snapback",
 			description: "Classic Chicago Bulls NBA Cap - Red/Black",
 			price:       999.99,
-			imageURL:    "https://example.com/bulls-cap.jpg",
+			imageURL:    "/assets/zane6.png",
 			stock:       50,
 		},
 	}
 
+	// First update any existing products with correct image URLs
+	var err error
+	for _, p := range testProducts {
+		_, err = DB.Exec(`
+			UPDATE products 
+			SET ImageURL = ? 
+			WHERE Name = ?
+		`, p.imageURL, p.name)
+
+		if err != nil {
+			log.Printf("Warning: Failed to update image URL for %s: %v", p.name, err)
+		}
+	}
+
+	// Then try to insert new products if needed
 	for _, p := range testProducts {
 		// Try to insert, ignore errors (they'll be duplicates)
-		_, err := DB.Exec(`
+		_, err = DB.Exec(`
 			INSERT INTO products (Name, Description, Price, ImageURL, Stock)
 			SELECT ?, ?, ?, ?, ?
 			WHERE NOT EXISTS (SELECT 1 FROM products WHERE Name = ?)
@@ -195,7 +210,7 @@ func insertTestData() {
 
 	// Insert test admin user
 	// Plain text password for testing
-	_, err := DB.Exec(`
+	_, err = DB.Exec(`
 		DELETE FROM users WHERE Email = 'admin@example.com'
 	`)
 	if err != nil {
@@ -223,7 +238,7 @@ func insertTestData() {
 
 	for _, u := range testUsers {
 		// Delete existing user first
-		_, err := DB.Exec(`DELETE FROM users WHERE Email = ?`, u.email)
+		_, err = DB.Exec(`DELETE FROM users WHERE Email = ?`, u.email)
 		if err != nil {
 			log.Printf("Warning: Failed to delete existing user %s: %v", u.username, err)
 		}

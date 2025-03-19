@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { addToCart } from '../services/api';
 import './ProductCard.css';
@@ -16,9 +16,34 @@ interface ProductCardProps {
   product: Product;
 }
 
+// API URL for asset serving
+const API_URL = 'http://localhost:8080';
+
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const navigate = useNavigate();
   const [adding, setAdding] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const [imageSrc, setImageSrc] = useState('');
+
+  // Set up the image source when the component mounts or when product changes
+  useEffect(() => {
+    // For development debugging
+    console.log("Product image URL:", product.image_url);
+    
+    if (!product.image_url) {
+      setImageSrc('https://via.placeholder.com/250');
+      return;
+    }
+    
+    // If it's already a full URL, use it directly
+    if (product.image_url.startsWith('http')) {
+      setImageSrc(product.image_url);
+    } else {
+      // Otherwise prepend the API URL
+      setImageSrc(`${API_URL}${product.image_url}`);
+      console.log("Full image URL:", `${API_URL}${product.image_url}`);
+    }
+  }, [product]);
 
   const handleAddToCart = async () => {
     // Check if user is logged in
@@ -42,12 +67,19 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     }
   };
 
+  const handleImageError = () => {
+    console.log("Image failed to load:", imageSrc);
+    setImageError(true);
+    setImageSrc('https://via.placeholder.com/250');
+  };
+
   return (
     <div className="product-card">
       <div className="product-image">
         <img 
-          src={product.image_url || 'https://via.placeholder.com/150'} 
-          alt={product.name} 
+          src={imageError ? 'https://via.placeholder.com/250' : imageSrc} 
+          alt={product.name}
+          onError={handleImageError}
         />
       </div>
       <div className="product-info">

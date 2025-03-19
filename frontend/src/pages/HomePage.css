@@ -154,11 +154,11 @@
 }
 
 .category:nth-child(2) .category-image {
-  background-image: url('https://images.unsplash.com/photo-1621264448699-226155e2fbdb?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&q=80');
+  background-image: url('/Users/adriangabriellfrancisco/workspace/github.com/Skufu/ZaneMNL/frontend/src/assets/zane2.png');
 }
 
 .category:nth-child(3) .category-image {
-  background-image: url('https://images.unsplash.com/photo-1587156375433-99905d3e4970?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&q=80');
+  background-image: url('/Users/adriangabriellfrancisco/workspace/github.com/Skufu/ZaneMNL/frontend/src/assets/zane3.png');
 }
 
 .category h3 {

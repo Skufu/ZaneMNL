@@ -5,6 +5,9 @@ import ProductForm from './components/ProductForm';
 import { getAdminProducts, createProduct, updateProduct, deleteProduct } from '../../services/admin-api';
 import './AdminProducts.css';
 
+// API URL for asset serving
+const API_URL = 'http://localhost:8080';
+
 interface Product {
   product_id: number;
   name: string;
@@ -126,6 +129,13 @@ const AdminProducts: React.FC = () => {
     product.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Helper function to get the correct image URL
+  const getImageUrl = (url: string | null | undefined): string => {
+    if (!url) return 'https://via.placeholder.com/50';
+    if (url.startsWith('http')) return url;
+    return `${API_URL}${url}`;
+  };
+
   return (
     <AdminLayout title="Product Management">
       <div className="admin-products">
@@ -187,7 +197,7 @@ const AdminProducts: React.FC = () => {
                           <td>
                             <div className="product-image">
                               <img 
-                                src={product.image_url || 'https://via.placeholder.com/50'} 
+                                src={getImageUrl(product.image_url)} 
                                 alt={product.name} 
                               />
                             </div>

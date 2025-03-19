@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './ProductForm.css';
 
+// API URL for asset serving
+const API_URL = 'http://localhost:8080';
+
 interface Product {
   product_id: number;
   name: string;
@@ -140,6 +143,13 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
     onSubmit(productData);
   };
 
+  // Helper function to get the correct image URL
+  const getImageUrl = (url: string | null | undefined): string => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    return `${API_URL}${url}`;
+  };
+
   return (
     <div className="product-form-container">
       <h2>{product ? 'Edit Product' : 'Add New Product'}</h2>
@@ -215,7 +225,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSubmit, onCancel }
         
         {formData.image_url && (
           <div className="image-preview">
-            <img src={formData.image_url} alt="Product preview" />
+            <img src={getImageUrl(formData.image_url)} alt="Product preview" />
           </div>
         )}
         

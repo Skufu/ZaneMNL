@@ -43,6 +43,9 @@ func main() {
 		c.Status(204)
 	})
 
+	// Serve static files from public directory
+	r.Static("/assets", "./public/assets")
+
 	// Public routes - no authentication needed
 	// POST /register - Create a new user account
 	r.POST("/register", handlers.RegisterUser)
