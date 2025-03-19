@@ -19,6 +19,7 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const navigate = useNavigate();
   const [adding, setAdding] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const handleAddToCart = async () => {
     // Check if user is logged in
@@ -43,27 +44,43 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   return (
-    <div className="product-card">
+    <div 
+      className="product-card" 
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="product-badge">
+        {product.stock <= 0 && <span className="out-of-stock">Out of Stock</span>}
+        {product.stock > 0 && product.stock <= 5 && <span className="low-stock">Low Stock</span>}
+      </div>
       <div className="product-image">
         <img 
-          src={product.image_url || 'https://via.placeholder.com/150'} 
+          src={product.image_url || 'https://via.placeholder.com/300x300?text=Cap+Image'} 
           alt={product.name} 
         />
       </div>
       <div className="product-info">
         <h3 className="product-name">{product.name}</h3>
         <p className="product-price">₱{product.price.toFixed(2)}</p>
-        <p className="product-description">{product.description}</p>
-        <p className="product-stock">
-          {product.stock > 0 ? `In Stock: ${product.stock}` : 'Out of Stock'}
-        </p>
-        <button 
-          className="add-to-cart-btn" 
-          onClick={handleAddToCart}
-          disabled={product.stock <= 0 || adding}
-        >
-          {adding ? 'Adding...' : 'Add to Cart'}
-        </button>
+        <div className={`product-description ${isHovered ? 'show' : ''}`}>
+          {product.description}
+        </div>
+        <div className="product-actions">
+          <button 
+            className={`add-to-cart-btn ${product.stock <= 0 ? 'disabled' : ''}`}
+            onClick={handleAddToCart}
+            disabled={product.stock <= 0 || adding}
+          >
+            {adding ? (
+              <span className="loading-spinner"></span>
+            ) : (
+              <>
+                <span className="btn-icon">🛒</span>
+                <span>{product.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
