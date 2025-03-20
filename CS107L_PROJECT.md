@@ -170,6 +170,114 @@
      - Verify you're not in read-only mode
      - Check disk permissions
 
+## Beginner's Guide to Working with the Database
+
+### Step-by-Step SQLite Practice (For Beginners)
+
+1. **Starting SQLite for the First Time**
+   ```bash
+   # Go to the project folder first
+   cd ZaneMNL
+   
+   # Start SQLite with the database
+   sqlite3 ./data/lab.db
+   
+   # Make the output look nice (copy and paste these lines)
+   .mode column
+   .headers on
+   ```
+
+2. **Your First SELECT Query**
+   ```sql
+   -- See all products in the database
+   SELECT ProductID, Name, Price, Stock FROM products;
+   
+   -- Find specific products
+   SELECT * FROM products WHERE Price < 1500;
+   ```
+
+3. **Understanding Table Relationships**
+   ```sql
+   -- See a user's orders (replace 1 with any UserID)
+   SELECT OrderID, TotalAmount, Status FROM orders WHERE UserID = 1;
+   
+   -- See what products are in an order (replace 1 with any OrderID)
+   SELECT p.Name, od.Quantity, od.Price
+   FROM order_details od
+   JOIN products p ON od.ProductID = p.ProductID
+   WHERE od.OrderID = 1;
+   ```
+
+### Common Beginner SQLite Errors Explained
+
+| Error Message | What It Means | How to Fix It |
+|---------------|---------------|--------------|
+| `Error: no such table: [table_name]` | The table doesn't exist or you misspelled it | Use `.tables` to see available tables |
+| `Error: near "[word]": syntax error` | SQL command has incorrect syntax | Check for typos, missing commas, or unclosed quotes |
+| `Error: database is locked` | Another process is using the database | Close other connections to the database |
+| `no such column: [column_name]` | Column doesn't exist or is misspelled | Use `.schema [table_name]` to see available columns |
+| `SQL logic error` | SQL statement is logically incorrect | Review logic, especially in WHERE clauses |
+
+### Visual Studio Code SQLite Extension
+
+For beginners who prefer a graphical interface:
+
+1. **Install SQLite Extension**
+   - Open VS Code
+   - Go to Extensions (Ctrl+Shift+X)
+   - Search for "SQLite"
+   - Install "SQLite" by alexcvzz
+
+2. **Using the Extension**
+   - Open Command Palette (Ctrl+Shift+P)
+   - Type "SQLite: Open Database"
+   - Select the database file (./data/lab.db)
+   - Click on "SQLITE EXPLORER" in the sidebar
+   - Expand the database to see tables
+   - Right-click on tables to see options (Select Top 1000)
+
+### Database System Flow Diagram
+
+```
+┌─────────────┐        ┌──────────────┐        ┌───────────────┐
+│  React      │        │  Go Backend  │        │  SQLite       │
+│  Frontend   │◄─────► │  API Server  │◄─────► │  Database     │
+└─────────────┘        └──────────────┘        └───────────────┘
+     ▲                                                ▲
+     │                                                │
+     │                                                │
+     │                                                │
+     ▼                                                ▼
+┌─────────────┐                               ┌───────────────┐
+│  User       │                               │  Database     │
+│  Browser    │                               │  File         │
+└─────────────┘                               │  (lab.db)     │
+                                              └───────────────┘
+```
+
+This diagram shows how data flows from the user's browser through our React frontend, to the Go backend API server, which then interacts with the SQLite database file.
+
+### Basic CRUD Operations Cheat Sheet
+
+| Operation | SQL Command Example | What It Does |
+|-----------|---------------------|-------------|
+| CREATE | `INSERT INTO products (Name, Price) VALUES ('Blue Cap', 999.99);` | Adds a new product |
+| READ | `SELECT * FROM products WHERE ProductID = 1;` | Gets product with ID 1 |
+| UPDATE | `UPDATE products SET Price = 1099.99 WHERE ProductID = 1;` | Changes product price |
+| DELETE | `DELETE FROM products WHERE ProductID = 1;` | Removes product with ID 1 |
+
+### SQLite Data Types for Beginners
+
+Unlike other database systems, SQLite uses "dynamic typing" with just 5 main types:
+
+| Type Name | When to Use It | Example Data |
+|-----------|----------------|--------------|
+| INTEGER | For whole numbers | User IDs, quantities, counts |
+| REAL | For decimal numbers | Prices, measurements, ratings |
+| TEXT | For text strings | Names, descriptions, emails |
+| BLOB | For binary data | Images, files (rarely used directly) |
+| NULL | For missing data | NULL (absence of a value) |
+
 ## Project Overview
 ZaneMNL is an e-commerce platform specializing in cap merchandise, built using Go for the backend, React for the frontend, and SQLite for the database. This project demonstrates various database concepts and SQL manipulations learned in CS107L, while providing a modern, responsive user interface for customers to browse products, manage carts, and place orders.
 
@@ -839,3 +947,130 @@ For the project presentation to the professor, prepare to demonstrate the follow
    - Connection management
 
 Prepare specific examples for each section to clearly demonstrate your understanding of database concepts and their application in a real-world e-commerce platform. 
+
+## Step-by-Step Demonstration Guide for Beginners
+
+This section provides a practical script you can follow during your presentation to demonstrate key database concepts. Copy these examples exactly to avoid errors during your demo.
+
+### 1. Database Connection and Setup
+
+```bash
+# Navigate to the project directory
+cd ZaneMNL
+
+# Start SQLite with the database
+sqlite3 ./data/lab.db
+
+# Set up prettier output (always do this first)
+.mode column
+.headers on
+.width 20 15 40 10
+```
+
+### 2. Basic Database Exploration
+
+```sql
+-- List all tables in the database
+.tables
+
+-- See the structure of important tables
+.schema users
+.schema products
+.schema orders
+.schema order_details
+
+-- Check how many records are in each table
+SELECT COUNT(*) AS TotalUsers FROM users;
+SELECT COUNT(*) AS TotalProducts FROM products;
+SELECT COUNT(*) AS TotalOrders FROM orders;
+```
+
+### 3. Demonstrating Simple Queries
+
+```sql
+-- Show all products with price and stock
+SELECT ProductID, Name, Price, Stock FROM products;
+
+-- Find expensive products (over ₱1500)
+SELECT Name, Price FROM products WHERE Price > 1500 ORDER BY Price DESC;
+
+-- Find products that are low in stock (less than 10)
+SELECT Name, Stock FROM products WHERE Stock < 10;
+```
+
+### 4. Demonstrating Relationships (JOIN Operations)
+
+```sql
+-- Show users and their orders
+SELECT u.UserID, u.Username, o.OrderID, o.TotalAmount, o.Status
+FROM users u
+JOIN orders o ON u.UserID = o.UserID
+LIMIT 5;
+
+-- Show what products are in a specific order (change OrderID as needed)
+SELECT o.OrderID, p.Name AS ProductName, od.Quantity, od.Price
+FROM orders o
+JOIN order_details od ON o.OrderID = od.OrderID
+JOIN products p ON od.ProductID = p.ProductID
+WHERE o.OrderID = 1;
+```
+
+### 5. Demonstrating Transaction (Create a New Product)
+
+```sql
+-- Begin transaction
+BEGIN TRANSACTION;
+
+-- Insert a new product
+INSERT INTO products (Name, Description, Price, Stock, ImageURL)
+VALUES ('CS107L Cap', 'Special Edition Cap for Database Class', 1299.99, 10, 'https://example.com/cs107-cap.jpg');
+
+-- See the new product
+SELECT * FROM products WHERE Name = 'CS107L Cap';
+
+-- Commit (to save changes) or Rollback (to cancel)
+COMMIT;
+-- ROLLBACK;  -- Uncomment this and comment the COMMIT to demonstrate rollback
+```
+
+### 6. Demonstrating Aggregation and Grouping
+
+```sql
+-- Calculate total value of inventory by product
+SELECT Name, Price, Stock, (Price * Stock) AS InventoryValue
+FROM products
+ORDER BY InventoryValue DESC
+LIMIT 5;
+
+-- Count products by price range
+SELECT 
+    CASE 
+        WHEN Price < 1000 THEN 'Budget (Under ₱1000)'
+        WHEN Price < 1500 THEN 'Mid-range (₱1000-₱1500)'
+        ELSE 'Premium (₱1500+)'
+    END AS PriceCategory,
+    COUNT(*) AS ProductCount
+FROM products
+GROUP BY PriceCategory;
+```
+
+### 7. Demonstration Cleanup (if needed)
+
+```sql
+-- Remove the demonstration product we added
+DELETE FROM products WHERE Name = 'CS107L Cap';
+
+-- Exit SQLite
+.quit
+```
+
+### Presentation Tips for Beginners
+
+1. **Practice the commands** beforehand so you're comfortable typing them during the demo
+2. **Copy commands to a text file** that you can quickly copy-paste if needed
+3. **Focus on explaining the WHY** behind each query, not just what it does
+4. **If something goes wrong**, stay calm and explain what happened - professors often value seeing how you handle errors
+5. **Prepare answers** to these common questions:
+   - How did you decide on this database schema?
+   - How does this database maintain data integrity?
+   - How would you optimize this query if it were running slowly? 
