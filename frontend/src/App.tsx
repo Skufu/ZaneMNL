@@ -15,6 +15,7 @@ import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminProducts from './pages/admin/AdminProducts';
 import AdminOrders from './pages/admin/AdminOrders';
+import AdminSalesReport from './pages/admin/AdminSalesReport';
 import { AdminProvider } from './context/AdminContext';
 
 import './App.css';
@@ -32,6 +33,7 @@ function App() {
                 <Route path="dashboard" element={<AdminDashboard />} />
                 <Route path="products" element={<AdminProducts />} />
                 <Route path="orders" element={<AdminOrders />} />
+                <Route path="reports" element={<AdminSalesReport />} />
                 {/* More admin routes will be added later */}
               </Routes>
             </AdminProvider>
