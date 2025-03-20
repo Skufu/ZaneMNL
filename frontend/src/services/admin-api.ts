@@ -13,7 +13,12 @@ const fetchWithAdminAuth = async (endpoint: string, options: RequestInit = {}): 
   
   // Create headers object properly
   const headers = new Headers(options.headers || {});
-  headers.set('Content-Type', 'application/json');
+  
+  // Only set Content-Type to application/json if it's not a FormData object
+  if (!(options.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
+  }
+  
   headers.set('Authorization', `Bearer ${token}`);
   
   try {
@@ -80,15 +85,15 @@ export const getDashboardMetrics = () => fetchWithAdminAuth('/admin/dashboard');
 // Products
 export const getAdminProducts = () => fetchWithAdminAuth('/admin/products');
 export const getAdminProduct = (id: number) => fetchWithAdminAuth(`/admin/products/${id}`);
-export const createProduct = (productData: any) => 
+export const createProduct = (productData: FormData) => 
   fetchWithAdminAuth('/admin/products', {
     method: 'POST',
-    body: JSON.stringify(productData)
+    body: productData // Don't stringify FormData
   });
-export const updateProduct = (id: number, productData: any) => 
+export const updateProduct = (id: number, productData: FormData) => 
   fetchWithAdminAuth(`/admin/products/${id}`, {
     method: 'PUT',
-    body: JSON.stringify(productData)
+    body: productData // Don't stringify FormData
   });
 export const deleteProduct = (id: number) => 
   fetchWithAdminAuth(`/admin/products/${id}`, {

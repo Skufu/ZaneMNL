@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import './CartPage.css';
 import { getCart, addToCart, updateCartItemQuantity, removeFromCart } from '../services/api';
 
+// API URL for asset serving
+const API_URL = 'http://localhost:8080';
+
 interface CartItem {
   cart_item_id: number;
   product_id: number;
@@ -46,6 +49,13 @@ const CartPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to get the correct image URL
+  const getImageUrl = (url: string | null | undefined): string => {
+    if (!url) return 'https://via.placeholder.com/80';
+    if (url.startsWith('http')) return url;
+    return `${API_URL}${url}`;
   };
 
   // Simple increment handler
@@ -123,14 +133,7 @@ const CartPage: React.FC = () => {
   }
 
   // For demonstration purposes, let's add a debug section
-  const debugInfo = (
-    <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
-      <h3>Debug Information</h3>
-      <p>This section is for development only and should be removed in production.</p>
-      <p>Cart contains {cart.items.length} items with subtotal: ₱{cart.subtotal.toFixed(2)}</p>
-      <button onClick={fetchCart} style={{ marginTop: '0.5rem' }}>Refresh Cart Data</button>
-    </div>
-  );
+  
 
   return (
     <div className="cart-page">
@@ -142,8 +145,12 @@ const CartPage: React.FC = () => {
             <div key={item.cart_item_id} className="cart-item">
               <div className="item-image">
                 <img 
-                  src={item.image_url || 'https://via.placeholder.com/100'} 
-                  alt={item.name} 
+                  src={getImageUrl(item.image_url)} 
+                  alt={item.name}
+                  onError={(e) => {
+                    // Fallback to placeholder if image fails to load
+                    (e.target as HTMLImageElement).src = 'https://via.placeholder.com/80';
+                  }}
                 />
               </div>
               
@@ -216,7 +223,7 @@ const CartPage: React.FC = () => {
       </div>
       
       {/* Include debug info during development */}
-      {process.env.NODE_ENV !== 'production' && debugInfo}
+      
     </div>
   );
 };

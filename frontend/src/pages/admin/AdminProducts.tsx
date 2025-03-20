@@ -5,8 +5,8 @@ import ProductForm from './components/ProductForm';
 import { getAdminProducts, createProduct, updateProduct, deleteProduct } from '../../services/admin-api';
 import './AdminProducts.css';
 
-// API URL for asset serving
-const API_URL = 'http://localhost:8080';
+// Get API URL from environment or use localhost as fallback
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
 interface Product {
   product_id: number;
@@ -16,6 +16,7 @@ interface Product {
   stock: number;
   image_url: string;
   created_at: string;
+  category?: string;
 }
 
 const AdminProducts: React.FC = () => {
@@ -78,13 +79,23 @@ const AdminProducts: React.FC = () => {
     }
   };
 
-  const handleFormSubmit = async (productData: any) => {
+  const handleFormSubmit = async (productData: FormData) => {
     try {
       const isEditing = !!editingProduct;
+      
+      // Debug log for form data
+      console.log('Submitting product form with fields:');
+      // Use array from to convert FormData entries to array for compatibility
+      const formDataEntries = Array.from(productData.entries());
+      formDataEntries.forEach(([key, value]) => {
+        console.log(`${key}: ${value}`);
+      });
+      
       let savedProduct: Product;
       
       if (isEditing && editingProduct) {
         savedProduct = await updateProduct(editingProduct.product_id, productData) as Product;
+        console.log('Product updated successfully', savedProduct);
         
         // Update product in state
         setProducts(products.map(p => 
@@ -95,6 +106,7 @@ const AdminProducts: React.FC = () => {
         alert('Product updated successfully');
       } else {
         savedProduct = await createProduct(productData) as Product;
+        console.log('Product created successfully', savedProduct);
         
         // Add new product to state
         setProducts([...products, savedProduct]);
@@ -131,7 +143,7 @@ const AdminProducts: React.FC = () => {
 
   // Helper function to get the correct image URL
   const getImageUrl = (url: string | null | undefined): string => {
-    if (!url) return 'https://via.placeholder.com/50';
+    if (!url) return 'https://via.placeholder.com/400';
     if (url.startsWith('http')) return url;
     return `${API_URL}${url}`;
   };
@@ -161,76 +173,87 @@ const AdminProducts: React.FC = () => {
                 Add New Product
               </button>
             </div>
-
-            {loading ? (
+            
+            {loading && (
               <div className="products-loading">
-                <div className="loading-spinner"></div>
                 <p>Loading products...</p>
               </div>
-            ) : error ? (
+            )}
+            
+            {error && (
               <div className="products-error">
                 <p>{error}</p>
-                <button onClick={fetchProducts}>Retry</button>
+                <button onClick={fetchProducts}>Try Again</button>
               </div>
-            ) : (
+            )}
+            
+            {!loading && !error && filteredProducts.length === 0 && (
+              <div className="no-products">
+                <p>No products found.</p>
+              </div>
+            )}
+            
+            {!loading && !error && filteredProducts.length > 0 && (
               <div className="products-table-container">
                 <table className="products-table">
                   <thead>
                     <tr>
                       <th>Image</th>
-                      <th>Name</th>
+                      <th>Product Details</th>
                       <th>Price</th>
                       <th>Stock</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredProducts.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="no-products">
-                          {searchTerm ? 'No products match your search.' : 'No products available.'}
+                    {filteredProducts.map(product => (
+                      <tr key={product.product_id}>
+                        <td>
+                          <div className="admin-product-image">
+                            <img 
+                              src={getImageUrl(product.image_url)} 
+                              alt={product.name} 
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400';
+                              }}
+                            />
+                          </div>
+                        </td>
+                        <td>
+                          <div className="product-name">{product.name}</div>
+                          <div className="product-description">{product.description}</div>
+                          {product.category && (
+                            <div className="product-category">Category: {product.category}</div>
+                          )}
+                        </td>
+                        <td>{formatCurrency(product.price)}</td>
+                        <td>
+                          <span className={`stock-badge ${
+                            product.stock > 10 ? 'in-stock' : 
+                            product.stock > 0 ? 'low-stock' : 
+                            'out-of-stock'
+                          }`}>
+                            {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="product-actions">
+                            <button 
+                              className="edit-btn"
+                              onClick={() => handleEditProduct(product)}
+                            >
+                              Edit
+                            </button>
+                            <button 
+                              className="delete-btn"
+                              onClick={() => handleDeleteProduct(product.product_id)}
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
-                    ) : (
-                      filteredProducts.map(product => (
-                        <tr key={product.product_id}>
-                          <td>
-                            <div className="product-image">
-                              <img 
-                                src={getImageUrl(product.image_url)} 
-                                alt={product.name} 
-                              />
-                            </div>
-                          </td>
-                          <td>
-                            <div className="product-name">{product.name}</div>
-                            <div className="product-description">{product.description.substring(0, 50)}...</div>
-                          </td>
-                          <td>{formatCurrency(product.price)}</td>
-                          <td>
-                            <span className={`stock-badge ${product.stock > 10 ? 'in-stock' : product.stock > 0 ? 'low-stock' : 'out-of-stock'}`}>
-                              {product.stock > 0 ? product.stock : 'Out of stock'}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="product-actions">
-                              <button 
-                                className="edit-btn"
-                                onClick={() => handleEditProduct(product)}
-                              >
-                                Edit
-                              </button>
-                              <button 
-                                className="delete-btn"
-                                onClick={() => handleDeleteProduct(product.product_id)}
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
+                    ))}
                   </tbody>
                 </table>
               </div>

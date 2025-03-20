@@ -4,35 +4,47 @@
   padding: 2rem 1rem;
 }
 
-.products-header {
+.products-page-header {
   text-align: center;
   margin-bottom: 3rem;
 }
 
-.products-header h1 {
+.products-page-header h1 {
   font-size: 2.8rem;
   font-weight: 800;
   margin-bottom: 1rem;
   letter-spacing: -0.5px;
 }
 
-.products-header p {
+.products-page-header p {
   font-size: 1.2rem;
   color: #b0b0b0;
   max-width: 600px;
   margin: 0 auto;
 }
 
-.products-grid {
+.products-page-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 2rem;
   padding: 1rem 0;
 }
 
-.loading,
-.error-message,
-.no-products {
+/* Ensure each grid item has consistent sizing */
+.products-page-grid > div {
+  min-width: 0; /* Allows grid items to shrink below min-content */
+  display: flex;
+  height: 100%;
+}
+
+/* Ensure product cards maintain consistent width */
+.products-page-grid .product-card {
+  width: 100%;
+}
+
+.products-page-loading,
+.products-page-error,
+.products-page-no-products {
   text-align: center;
   padding: 2rem;
   background-color: #1a1a1a;
@@ -42,20 +54,20 @@
   border: 1px solid #333;
 }
 
-.loading {
+.products-page-loading {
   color: #666;
 }
 
-.error-message {
+.products-page-error {
   color: #ff6b6b;
 }
 
-.no-products {
+.products-page-no-products {
   color: #b0b0b0;
 }
 
 /* Category Filter */
-.product-filters {
+.products-page-filters {
   margin-bottom: 2rem;
   display: flex;
   justify-content: center;
@@ -63,7 +75,7 @@
   gap: 1rem;
 }
 
-.filter-btn {
+.products-page-filter-btn {
   padding: 0.75rem 1.5rem;
   background-color: #1a1a1a;
   color: #ffffff;
@@ -74,33 +86,33 @@
   font-weight: 500;
 }
 
-.filter-btn.active {
+.products-page-filter-btn.active {
   background-color: #ffffff;
   color: #121212;
   border-color: #ffffff;
 }
 
-.filter-btn:hover {
+.products-page-filter-btn:hover {
   background-color: #333;
 }
 
-.filter-btn.active:hover {
+.products-page-filter-btn.active:hover {
   background-color: #e0e0e0;
 }
 
 @media (max-width: 768px) {
-  .products-grid {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  .products-page-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 1.5rem;
   }
   
-  .products-header h1 {
+  .products-page-header h1 {
     font-size: 2.2rem;
   }
 }
 
 @media (max-width: 480px) {
-  .products-grid {
-    grid-template-columns: 1fr;
+  .products-page-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   }
 } 

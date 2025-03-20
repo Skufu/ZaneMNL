@@ -10,7 +10,7 @@ interface Product {
   price: number;
   image_url: string;
   stock: number;
-  category?: string; // Adding category for filtering
+  category: string; // Category field should be used for filtering
 }
 
 const ProductsPage: React.FC = () => {
@@ -19,9 +19,7 @@ const ProductsPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('all');
-
-  // Sample categories - in a real app, these would come from the backend
-  const categories = ['all', 'baseball caps', 'snapbacks', 'fitted caps', 'trucker'];
+  const [categories, setCategories] = useState<string[]>(['all']);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -30,7 +28,16 @@ const ProductsPage: React.FC = () => {
         const data = await getProducts();
         setProducts(data);
         setFilteredProducts(data);
+        
+        // Extract unique categories from products
+        const categorySet = new Set<string>();
+        categorySet.add('all');
+        data.forEach((product: Product) => {
+          categorySet.add(product.category || 'uncategorized');
+        });
+        setCategories(Array.from(categorySet));
       } catch (err) {
+        console.error('Error fetching products:', err);
         setError('Failed to load products. Please try again later.');
       } finally {
         setLoading(false);
@@ -45,11 +52,11 @@ const ProductsPage: React.FC = () => {
     if (category === 'all') {
       setFilteredProducts(products);
     } else {
-      // In a real app, you would filter based on actual category field
-      // This is a simplified example
+      // Filter based on the category field
       const filtered = products.filter(product => 
-        product.name.toLowerCase().includes(category.toLowerCase()) || 
-        product.description.toLowerCase().includes(category.toLowerCase())
+        product.category === category || 
+        // Fallback for products without a category
+        (!product.category && category === 'uncategorized')
       );
       setFilteredProducts(filtered);
     }
@@ -57,42 +64,43 @@ const ProductsPage: React.FC = () => {
 
   return (
     <div className="products-page">
-      <div className="products-header">
+      <div className="products-page-header">
         <h1>Premium Caps Collection</h1>
         <p>Browse our selection of high-quality authentic caps</p>
       </div>
 
-      <div className="product-filters">
+      <div className="products-page-filters">
         {categories.map(category => (
           <button
             key={category}
-            className={`filter-btn ${activeCategory === category ? 'active' : ''}`}
+            className={`products-page-filter-btn ${activeCategory === category ? 'active' : ''}`}
             onClick={() => handleCategoryFilter(category)}
           >
-            {category.charAt(0).toUpperCase() + category.slice(1)}
+            {category === 'all' ? 'All Products' : 
+             category.charAt(0).toUpperCase() + category.slice(1)}
           </button>
         ))}
       </div>
 
       {loading && (
-        <div className="loading">
+        <div className="products-page-loading">
           <p>Loading premium caps...</p>
         </div>
       )}
 
       {error && (
-        <div className="error-message">
+        <div className="products-page-error">
           <p>{error}</p>
         </div>
       )}
 
       {!loading && !error && filteredProducts.length === 0 && (
-        <div className="no-products">
+        <div className="products-page-no-products">
           <p>No products available in this category.</p>
         </div>
       )}
 
-      <div className="products-grid">
+      <div className="products-page-grid">
         {filteredProducts.map(product => (
           <ProductCard key={product.product_id} product={product} />
         ))}

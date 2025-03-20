@@ -16,8 +16,8 @@ interface ProductCardProps {
   product: Product;
 }
 
-// API URL for asset serving
-const API_URL = 'http://localhost:8080';
+// Get API URL from environment or use localhost as fallback
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const navigate = useNavigate();
@@ -27,9 +27,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   // Set up the image source when the component mounts or when product changes
   useEffect(() => {
-    // For development debugging
-    console.log("Product image URL:", product.image_url);
-    
     if (!product.image_url) {
       setImageSrc('https://via.placeholder.com/250');
       return;
@@ -41,7 +38,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     } else {
       // Otherwise prepend the API URL
       setImageSrc(`${API_URL}${product.image_url}`);
-      console.log("Full image URL:", `${API_URL}${product.image_url}`);
     }
   }, [product]);
 
@@ -67,15 +63,18 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     }
   };
 
+  const handleViewProduct = () => {
+    navigate(`/product/${product.product_id}`);
+  };
+
   const handleImageError = () => {
-    console.log("Image failed to load:", imageSrc);
     setImageError(true);
     setImageSrc('https://via.placeholder.com/250');
   };
 
   return (
     <div className="product-card">
-      <div className="product-image">
+      <div className="product-image" onClick={handleViewProduct}>
         <img 
           src={imageError ? 'https://via.placeholder.com/250' : imageSrc} 
           alt={product.name}
@@ -83,19 +82,27 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         />
       </div>
       <div className="product-info">
-        <h3 className="product-name">{product.name}</h3>
+        <h3 className="product-name" onClick={handleViewProduct}>{product.name}</h3>
         <p className="product-price">₱{product.price.toFixed(2)}</p>
         <p className="product-description">{product.description}</p>
         <p className="product-stock">
           {product.stock > 0 ? `In Stock: ${product.stock}` : 'Out of Stock'}
         </p>
-        <button 
-          className="add-to-cart-btn" 
-          onClick={handleAddToCart}
-          disabled={product.stock <= 0 || adding}
-        >
-          {adding ? 'Adding...' : 'Add to Cart'}
-        </button>
+        <div className="product-actions">
+          <button 
+            className="view-product-btn"
+            onClick={handleViewProduct}
+          >
+            View Details
+          </button>
+          <button 
+            className="add-to-cart-btn" 
+            onClick={handleAddToCart}
+            disabled={product.stock <= 0 || adding}
+          >
+            {adding ? 'Adding...' : 'Add to Cart'}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
@@ -272,30 +273,84 @@ func GetOrders(c *gin.Context) {
 
 // CreateProduct adds a new product (admin only)
 func CreateProduct(c *gin.Context) {
-	var input struct {
-		Name        string  `json:"name" binding:"required,min=3"`
-		Description string  `json:"description" binding:"required,min=10"`
-		Price       float64 `json:"price" binding:"required,min=0.01"`
-		ImageURL    string  `json:"image_url" binding:"omitempty,url"`
-		Stock       int     `json:"stock" binding:"required,min=0"`
-		Category    string  `json:"category" binding:"omitempty"`
-		Brand       string  `json:"brand" binding:"omitempty"`
-	}
+	contentType := c.GetHeader("Content-Type")
 
-	if err := c.ShouldBindJSON(&input); err != nil {
-		log.Printf("Invalid product input: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+	// Check if request is multipart form data or JSON
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		// Handle form data request
+		if err := c.Request.ParseMultipartForm(10 << 20); err != nil { // 10MB max
+			log.Printf("Error parsing multipart form: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Could not parse form data"})
+			return
+		}
 
-	product, err := models.CreateProduct(input.Name, input.Description, input.Price, input.ImageURL, input.Stock)
-	if err != nil {
-		log.Printf("Failed to create product: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+		form := c.Request.MultipartForm
 
-	c.JSON(http.StatusCreated, product)
+		name := getFormValue(form, "Name")
+		description := getFormValue(form, "Description")
+		priceStr := getFormValue(form, "Price")
+		stockStr := getFormValue(form, "Stock")
+		imageURL := getFormValue(form, "ImageURL")
+
+		// Parse numeric values
+		price, err := strconv.ParseFloat(priceStr, 64)
+		if err != nil {
+			log.Printf("Invalid product price: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid price format"})
+			return
+		}
+
+		stock, err := strconv.Atoi(stockStr)
+		if err != nil {
+			log.Printf("Invalid product stock: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid stock format"})
+			return
+		}
+
+		// Create the product
+		product, err := models.CreateProduct(name, description, price, imageURL, stock)
+		if err != nil {
+			log.Printf("Failed to create product: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusCreated, product)
+	} else {
+		// Handle JSON request
+		var input struct {
+			Name        string  `json:"name" binding:"required,min=3"`
+			Description string  `json:"description" binding:"required,min=10"`
+			Price       float64 `json:"price" binding:"required,min=0.01"`
+			ImageURL    string  `json:"image_url" binding:"omitempty,url"`
+			Stock       int     `json:"stock" binding:"required,min=0"`
+			Category    string  `json:"category" binding:"omitempty"`
+			Brand       string  `json:"brand" binding:"omitempty"`
+		}
+
+		if err := c.ShouldBindJSON(&input); err != nil {
+			log.Printf("Invalid product input: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		product, err := models.CreateProduct(input.Name, input.Description, input.Price, input.ImageURL, input.Stock)
+		if err != nil {
+			log.Printf("Failed to create product: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusCreated, product)
+	}
+}
+
+// Helper function to get form value safely
+func getFormValue(form *multipart.Form, key string) string {
+	if values, ok := form.Value[key]; ok && len(values) > 0 {
+		return values[0]
+	}
+	return ""
 }
 
 // UpdateProduct modifies an existing product (admin only)
@@ -306,26 +361,72 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	var input struct {
-		Name        string  `json:"name"`
-		Description string  `json:"description"`
-		Price       float64 `json:"price" binding:"omitempty,min=0.01"`
-		ImageURL    string  `json:"image_url"`
-		Stock       int     `json:"stock" binding:"omitempty,min=0"`
-	}
+	contentType := c.GetHeader("Content-Type")
 
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+	// Check if request is multipart form data or JSON
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		// Handle form data request
+		if err := c.Request.ParseMultipartForm(10 << 20); err != nil { // 10MB max
+			log.Printf("Error parsing multipart form: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Could not parse form data"})
+			return
+		}
 
-	product, err := models.UpdateProduct(id, input.Name, input.Description, input.Price, input.ImageURL, input.Stock)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update product"})
-		return
-	}
+		form := c.Request.MultipartForm
 
-	c.JSON(http.StatusOK, product)
+		name := getFormValue(form, "Name")
+		description := getFormValue(form, "Description")
+		priceStr := getFormValue(form, "Price")
+		stockStr := getFormValue(form, "Stock")
+		imageURL := getFormValue(form, "ImageURL")
+
+		// Parse numeric values
+		price, err := strconv.ParseFloat(priceStr, 64)
+		if err != nil {
+			log.Printf("Invalid product price: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid price format"})
+			return
+		}
+
+		stock, err := strconv.Atoi(stockStr)
+		if err != nil {
+			log.Printf("Invalid product stock: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid stock format"})
+			return
+		}
+
+		// Update the product
+		product, err := models.UpdateProduct(id, name, description, price, imageURL, stock)
+		if err != nil {
+			log.Printf("Failed to update product: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, product)
+	} else {
+		// Handle JSON request
+		var input struct {
+			Name        string  `json:"name"`
+			Description string  `json:"description"`
+			Price       float64 `json:"price" binding:"omitempty,min=0.01"`
+			ImageURL    string  `json:"image_url"`
+			Stock       int     `json:"stock" binding:"omitempty,min=0"`
+		}
+
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		product, err := models.UpdateProduct(id, input.Name, input.Description, input.Price, input.ImageURL, input.Stock)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update product"})
+			return
+		}
+
+		c.JSON(http.StatusOK, product)
+	}
 }
 
 // DeleteProduct removes a product (admin only)
@@ -336,12 +437,34 @@ func DeleteProduct(c *gin.Context) {
 		return
 	}
 
-	err = models.DeleteProduct(id)
+	// Add logging to help track the delete operation
+	log.Printf("DeleteProduct: Starting deletion of product with ID: %d", id)
+
+	// Check if product exists first
+	product, err := models.GetProductByID(id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete product"})
+		log.Printf("DeleteProduct: Error checking product existence: %v", err)
+		if err.Error() == "sql: no rows in result set" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch product"})
 		return
 	}
 
+	if product == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
+		return
+	}
+
+	err = models.DeleteProduct(id)
+	if err != nil {
+		log.Printf("DeleteProduct: Error deleting product: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to delete product: %v", err)})
+		return
+	}
+
+	log.Printf("DeleteProduct: Successfully deleted product with ID: %d", id)
 	c.JSON(http.StatusOK, gin.H{"message": "Product deleted successfully"})
 }
 

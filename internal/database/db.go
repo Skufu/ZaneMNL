@@ -125,7 +125,7 @@ func createTables() {
 		`CREATE TABLE IF NOT EXISTS order_details (
 			OrderDetailID INTEGER PRIMARY KEY AUTOINCREMENT,
 			OrderID INTEGER NOT NULL,
-			ProductID INTEGER NOT NULL,
+			ProductID INTEGER,
 			Quantity INTEGER NOT NULL,
 			Price REAL NOT NULL,
 			FOREIGN KEY (OrderID) REFERENCES orders(OrderID),

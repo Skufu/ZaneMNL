@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { getCart, createOrder } from '../services/api';
 import './CheckoutPage.css';
 
+// API URL for asset serving
+const API_URL = 'http://localhost:8080';
+
 interface CartItem {
   cart_item_id: number;
   product_id: number;
@@ -83,6 +86,13 @@ const CheckoutPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to get the correct image URL
+  const getImageUrl = (url: string | null | undefined): string => {
+    if (!url) return 'https://via.placeholder.com/70';
+    if (url.startsWith('http')) return url;
+    return `${API_URL}${url}`;
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -376,8 +386,12 @@ const CheckoutPage: React.FC = () => {
               <div key={item.cart_item_id} className="order-item">
                 <div className="item-image">
                   <img 
-                    src={item.image_url || 'https://via.placeholder.com/50'} 
+                    src={getImageUrl(item.image_url)} 
                     alt={item.name} 
+                    onError={(e) => {
+                      // Fallback to placeholder if image fails to load
+                      (e.target as HTMLImageElement).src = 'https://via.placeholder.com/70';
+                    }}
                   />
                 </div>
                 <div className="item-details">
