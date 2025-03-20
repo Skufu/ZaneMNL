@@ -7,7 +7,7 @@
 .hero-section {
   height: 600px;
   width: 100%;
-  background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('/Users/adriangabriellfrancisco/workspace/github.com/Skufu/ZaneMNL/frontend/src/assets/zane_bg.png');
+  background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('../assets/zane_bg.png');
   background-size: cover;
   background-position: center;
   display: flex;
@@ -150,15 +150,15 @@
 }
 
 .category:nth-child(1) .category-image {
-  background-image: url('/Users/adriangabriellfrancisco/workspace/github.com/Skufu/ZaneMNL/frontend/src/assets/zane1.png');
+  background-image: url('../assets/zane1.png');
 }
 
 .category:nth-child(2) .category-image {
-  background-image: url('/Users/adriangabriellfrancisco/workspace/github.com/Skufu/ZaneMNL/frontend/src/assets/zane2.png');
+  background-image: url('../assets/zane2.png');
 }
 
 .category:nth-child(3) .category-image {
-  background-image: url('/Users/adriangabriellfrancisco/workspace/github.com/Skufu/ZaneMNL/frontend/src/assets/zane3.png');
+  background-image: url('../assets/zane3.png');
 }
 
 .category h3 {
