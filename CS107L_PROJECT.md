@@ -13,8 +13,15 @@
 5. [Key SQL Operations](#key-sql-operations-demonstrated)
 6. [SQL Data Manipulation](#sql-data-manipulation-demonstrations)
 7. [Database Best Practices](#database-best-practices-demonstrated)
-8. [Technical Stack](#project-technical-stack)
-9. [Design Principles](#database-design-principles-applied)
+8. [Frontend Architecture](#frontend-architecture)
+   - [Component Structure](#component-structure)
+   - [State Management](#state-management)
+   - [API Integration](#api-integration)
+   - [User Interface Features](#user-interface-features)
+9. [API Endpoints](#api-endpoints)
+10. [Technical Stack](#project-technical-stack)
+11. [Design Principles](#database-design-principles-applied)
+12. [Project Demonstration](#project-demonstration)
 
 ## Setup Instructions
 
@@ -164,7 +171,7 @@
      - Check disk permissions
 
 ## Project Overview
-ZaneMNL is an e-commerce platform specializing in cap merchandise, built using Go for the backend, React for the frontend, and SQLite for the database. This project demonstrates various database concepts and SQL manipulations learned in CS107L.
+ZaneMNL is an e-commerce platform specializing in cap merchandise, built using Go for the backend, React for the frontend, and SQLite for the database. This project demonstrates various database concepts and SQL manipulations learned in CS107L, while providing a modern, responsive user interface for customers to browse products, manage carts, and place orders.
 
 ## Database Design
 
@@ -303,6 +310,8 @@ JOIN products p ON od.ProductID = p.ProductID
 WHERE o.UserID = ?;
 ```
 
+This query demonstrates the use of multiple JOIN operations to combine data from four different tables. It shows how we can retrieve comprehensive order information by linking users, orders, order details, and product information in a single query.
+
 ### 2. Transactions
 ```sql
 -- Place new order (transaction example)
@@ -329,6 +338,8 @@ BEGIN TRANSACTION;
 COMMIT;
 ```
 
+This transaction ensures data integrity during order placement by treating multiple operations as a single atomic unit. If any step fails, all changes are rolled back, preventing inconsistencies in the database.
+
 ### 3. Aggregation and Grouping
 ```sql
 -- Sales report by product
@@ -342,6 +353,8 @@ LEFT JOIN order_details od ON p.ProductID = od.ProductID
 GROUP BY p.ProductID
 ORDER BY TotalRevenue DESC;
 ```
+
+This query demonstrates SQL's powerful aggregation capabilities, using COUNT() and SUM() functions with GROUP BY to generate business intelligence reports from raw data.
 
 ### 4. Subqueries
 ```sql
@@ -360,6 +373,26 @@ WHERE TotalSpent > (
     FROM orders
 );
 ```
+
+This example shows how subqueries can be used both in the FROM clause and as a scalar value for comparison, enabling complex filtering operations.
+
+### 5. Conditional Logic with CASE
+```sql
+-- Stock level categorization
+SELECT 
+    Name,
+    Stock,
+    CASE 
+        WHEN Stock = 0 THEN 'Out of Stock'
+        WHEN Stock < 10 THEN 'Low Stock'
+        WHEN Stock < 30 THEN 'Moderate Stock'
+        ELSE 'Good Stock'
+    END as StockStatus
+FROM products
+ORDER BY Stock ASC;
+```
+
+CASE expressions bring procedural programming concepts into SQL, allowing for dynamic categorization and customized output formatting.
 
 ## SQL Data Manipulation Demonstrations
 
@@ -614,32 +647,195 @@ SELECT * FROM products;
    - Documented constraints
    - Version control for schema changes
 
+## Frontend Architecture
+
+### Component Structure
+
+The ZaneMNL frontend is built using React with TypeScript and follows a component-based architecture that promotes reusability and maintainability:
+
+1. **Layout Components**
+   - `Header` - Contains navigation, search, and cart summary
+   - `Footer` - Site map, contact information, and social links
+   - `Layout` - Wrapper component that includes Header and Footer
+
+2. **Page Components**
+   - `HomePage` - Featured products and categories
+   - `ProductListPage` - Displays all products with filtering and sorting
+   - `ProductDetailPage` - Individual product information and "Add to Cart"
+   - `CartPage` - View cart contents, update quantities, and checkout
+   - `CheckoutPage` - Multi-step form for shipping, payment, and order review
+   - `OrderHistoryPage` - List of past orders and status
+   - `ProfilePage` - User information and settings
+   - `AdminDashboard` - Product and order management for admin users
+
+3. **Reusable UI Components**
+   - `ProductCard` - Standardized product display
+   - `CartItem` - Individual item in cart with quantity controls
+   - `PriceDisplay` - Formatted price with currency symbol
+   - `QuantitySelector` - +/- controls for changing quantities
+   - `StatusBadge` - Visual indicator for order status
+   - `Modal` - Reusable dialog component
+   - `LoadingSpinner` - Visual feedback during data fetching
+
+### State Management
+
+The application uses a combination of state management approaches:
+
+1. **React Context API**
+   - `AuthContext` - Manages user authentication state
+   - `CartContext` - Handles cart items and operations
+   - `NotificationContext` - Manages application-wide alerts
+
+2. **Local Component State**
+   - Used for UI-specific state like form inputs, sorting options, and filters
+
+3. **API Data Caching**
+   - Implemented using React Query for efficient data fetching and caching
+   - Reduces unnecessary network requests
+   - Provides loading and error states automatically
+
+### API Integration
+
+The frontend communicates with the Go backend through RESTful API endpoints:
+
+```typescript
+// Example API service for products
+import axios from 'axios';
+
+const API_URL = 'http://localhost:8080/api';
+
+export const fetchProducts = async (filters = {}) => {
+  const response = await axios.get(`${API_URL}/products`, { params: filters });
+  return response.data;
+};
+
+export const fetchProductById = async (productId) => {
+  const response = await axios.get(`${API_URL}/products/${productId}`);
+  return response.data;
+};
+
+export const addToCart = async (productId, quantity, token) => {
+  const response = await axios.post(
+    `${API_URL}/cart`, 
+    { productId, quantity },
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.data;
+};
+```
+
+### User Interface Features
+
+The application implements several UI/UX features to enhance the shopping experience:
+
+1. **Responsive Design**
+   - Mobile-first approach with responsive breakpoints
+   - Flexbox and CSS Grid for adaptive layouts
+
+2. **Product Browsing**
+   - Infinite scroll for product listings
+   - Quick view modals for product details
+   - Image galleries with zoom capability
+   - Filter and sort options (price, name, newest)
+
+3. **Shopping Cart**
+   - Persistent cart between sessions
+   - Real-time stock validation
+   - Quantity adjustments with stock limits
+   - Cart summary with subtotal calculation
+
+4. **Checkout Process**
+   - Multi-step form with progress indicator
+   - Form validation with error messaging
+   - Address autocompletion
+   - Order summary
+   - Payment method selection
+
+5. **User Account Management**
+   - Registration and login forms
+   - Order history with tracking
+   - Profile management
+   - Saved shipping addresses
+
+## API Endpoints
+
+The backend provides the following RESTful API endpoints that connect the frontend to the database:
+
+### Product Endpoints
+- `GET /api/products` - Retrieve all products with optional filtering
+- `GET /api/products/:id` - Retrieve a specific product by ID
+- `POST /api/products` - Create a new product (admin only)
+- `PUT /api/products/:id` - Update a product (admin only)
+- `DELETE /api/products/:id` - Delete a product (admin only)
+
+### User Endpoints
+- `POST /api/auth/register` - Create a new user account
+- `POST /api/auth/login` - Authenticate user and receive token
+- `GET /api/users/profile` - Get current user profile
+- `PUT /api/users/profile` - Update user profile
+
+### Cart Endpoints
+- `GET /api/cart` - Retrieve current user's cart
+- `POST /api/cart` - Add item to cart
+- `PUT /api/cart/:itemId` - Update cart item quantity
+- `DELETE /api/cart/:itemId` - Remove item from cart
+
+### Order Endpoints
+- `POST /api/orders` - Create a new order from cart
+- `GET /api/orders` - Get user's order history
+- `GET /api/orders/:id` - Get specific order details
+- `PUT /api/orders/:id/status` - Update order status (admin only)
+
+### Admin Endpoints
+- `GET /api/admin/orders` - Get all orders (admin only)
+- `GET /api/admin/users` - Get all users (admin only)
+- `GET /api/admin/stats` - Get sales statistics (admin only)
+
 ## Project Technical Stack
 
-- **Backend**: Go (Gin framework)
-- **Database**: SQLite3
-- **Frontend**: React with TypeScript
-- **API**: RESTful endpoints
-- **Authentication**: JWT tokens
+- **Backend**: 
+  - Go (Gin framework) - High-performance web framework
+  - SQLite3 - Embedded SQL database
+  - JWT - Token-based authentication
 
-## Database Design Principles Applied
+- **Frontend**: 
+  - React 18 - UI library
+  - TypeScript - Type-safe JavaScript
+  - React Router - Client-side routing
+  - React Query - Data fetching and caching
+  - Tailwind CSS - Utility-first styling
+  - Axios - HTTP client
 
-1. **Normalization**
-   - Tables are in 3NF
-   - Minimal data redundancy
-   - Referential integrity
+- **DevOps**:
+  - Docker - Containerization
+  - GitHub Actions - CI/CD
+  - ESLint/Prettier - Code quality tools
 
-2. **Security**
-   - Password hashing
-   - Role-based access
-   - Input validation
+## Project Demonstration
 
-3. **Scalability**
-   - Proper indexing
-   - Efficient queries
-   - Connection pooling
+For the project presentation to the professor, prepare to demonstrate the following key aspects:
 
-4. **Maintainability**
-   - Clear schema design
-   - Consistent naming
-   - Documentation 
+1. **Database Operations**
+   - Run sample queries from the SQL Data Manipulation section
+   - Show transaction execution with rollback scenarios
+   - Demonstrate joins and complex queries in action
+
+2. **Application Walkthrough**
+   - User registration and login
+   - Product browsing and filtering
+   - Add to cart functionality
+   - Checkout process
+   - Order management
+   - Admin dashboard (if applicable)
+
+3. **SQL Integration Points**
+   - How frontend actions trigger database operations
+   - Data flow from user interface to database and back
+   - Error handling and validation
+
+4. **Performance Considerations**
+   - Indexing strategy
+   - Query optimization techniques
+   - Connection management
+
+Prepare specific examples for each section to clearly demonstrate your understanding of database concepts and their application in a real-world e-commerce platform. 
