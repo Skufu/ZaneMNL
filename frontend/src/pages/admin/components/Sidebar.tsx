@@ -7,7 +7,6 @@ import './Sidebar.css';
 const DashboardIcon = () => <span className="sidebar-icon">📊</span>;
 const ProductsIcon = () => <span className="sidebar-icon">📦</span>;
 const OrdersIcon = () => <span className="sidebar-icon">🛒</span>;
-const UsersIcon = () => <span className="sidebar-icon">👥</span>;
 const ReportsIcon = () => <span className="sidebar-icon">📈</span>;
 const LogoutIcon = () => <span className="sidebar-icon">🚪</span>;
 
@@ -61,15 +60,6 @@ const Sidebar: React.FC = () => {
             >
               <OrdersIcon />
               Orders
-            </NavLink>
-          </li>
-          <li>
-            <NavLink 
-              to="/admin/users" 
-              className={`sidebar-link ${isActive('/admin/users') ? 'active' : ''}`}
-            >
-              <UsersIcon />
-              Users
             </NavLink>
           </li>
           <li>
