@@ -178,7 +178,6 @@
    ```bash
    # Go to the project folder first
    cd ZaneMNL
-   
    # Start SQLite with the database
    sqlite3 ./data/lab.db
    

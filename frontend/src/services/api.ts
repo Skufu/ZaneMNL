@@ -55,7 +55,7 @@ export const register = (userData: { username: string; email: string; password: 
     method: 'POST',
     body: JSON.stringify(userData)
   });
-
+  
 // Cart API
 export const getCart = () => fetchWithAuth('/cart');
 
