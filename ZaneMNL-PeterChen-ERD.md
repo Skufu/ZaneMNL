@@ -4,58 +4,56 @@ Below is the Entity-Relationship Diagram for ZaneMNL Cap Store in Peter Chen not
 
 ```mermaid
 erDiagram
-    %% Entities with attributes
     USERS {
-        UserID PK
-        Username
-        Email
-        Password
-        Role
-        CreatedAt
-        LastLogin
+        int UserID PK
+        string Username
+        string Email
+        string Password
+        string Role
+        datetime CreatedAt
+        datetime LastLogin
     }
 
     PRODUCTS {
-        ProductID PK
-        Name
-        Description
-        Price
-        ImageURL
-        Stock
-        CreatedAt
+        int ProductID PK
+        string Name
+        string Description
+        float Price
+        string ImageURL
+        int Stock
+        datetime CreatedAt
     }
 
     ORDERS {
-        OrderID PK
-        Status
-        ShippingAddress
-        PaymentMethod
-        TotalAmount
-        CreatedAt
-        PaymentVerified
-        PaymentReference
-        TrackingNumber
+        int OrderID PK
+        string Status
+        string ShippingAddress
+        string PaymentMethod
+        float TotalAmount
+        datetime CreatedAt
+        boolean PaymentVerified
+        string PaymentReference
+        string TrackingNumber
     }
 
     ORDER_DETAILS {
-        OrderDetailID PK
-        Quantity
-        Price
+        int OrderDetailID PK
+        int Quantity
+        float Price
     }
 
     CART_ITEMS {
-        CartItemID PK
-        Quantity
+        int CartItemID PK
+        int Quantity
     }
 
     ORDER_HISTORY {
-        HistoryID PK
-        OldStatus
-        NewStatus
-        ChangedAt
+        int HistoryID PK
+        string OldStatus
+        string NewStatus
+        datetime ChangedAt
     }
 
-    %% Relationships with cardinalities
     USERS ||--o{ ORDERS : places
     USERS ||--o{ CART_ITEMS : has
     PRODUCTS ||--o{ CART_ITEMS : added_to
