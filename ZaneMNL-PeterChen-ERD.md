@@ -1,66 +1,97 @@
 # ZaneMNL Database - Peter Chen ERD
 
-Below is the Entity-Relationship Diagram for ZaneMNL Cap Store in Peter Chen notation:
+Below is the Entity-Relationship Diagram for ZaneMNL Cap Store in traditional Peter Chen notation:
 
-```mermaid
-erDiagram
-    USERS {
-        int UserID PK
-        string Username
-        string Email
-        string Password
-        string Role
-        datetime CreatedAt
-        datetime LastLogin
-    }
-
-    PRODUCTS {
-        int ProductID PK
-        string Name
-        string Description
-        float Price
-        string ImageURL
-        int Stock
-        datetime CreatedAt
-    }
-
-    ORDERS {
-        int OrderID PK
-        string Status
-        string ShippingAddress
-        string PaymentMethod
-        float TotalAmount
-        datetime CreatedAt
-        boolean PaymentVerified
-        string PaymentReference
-        string TrackingNumber
-    }
-
-    ORDER_DETAILS {
-        int OrderDetailID PK
-        int Quantity
-        float Price
-    }
-
-    CART_ITEMS {
-        int CartItemID PK
-        int Quantity
-    }
-
-    ORDER_HISTORY {
-        int HistoryID PK
-        string OldStatus
-        string NewStatus
-        datetime ChangedAt
-    }
-
-    USERS ||--o{ ORDERS : places
-    USERS ||--o{ CART_ITEMS : has
-    PRODUCTS ||--o{ CART_ITEMS : added_to
-    PRODUCTS ||--o{ ORDER_DETAILS : included_in
-    ORDERS ||--o{ ORDER_DETAILS : contains
-    ORDERS ||--o{ ORDER_HISTORY : tracks
 ```
+                             +-------------+                            +---------------+
+                             |    USERS    |                            |   PRODUCTS    |
+                             +-------------+                            +---------------+
+                                   |                                           |
+        +--------------------------|---------------------------+               |
+        |           |        |     |     |        |            |               |
+    (UserID)   (Username) (Email) (Password) (Role) (CreatedAt) (LastLogin)    |
+        PK                                                                     |
+                                                                               |
+                                                                    +----------|----------+
+                                                                    |          |         |
+                                                               (ProductID)  (Name)  (Description)
+                                                                   PK
+                                                                    |          |         |
+                                                                (Price)   (ImageURL)  (Stock)
+                                                                    |
+                                                              (CreatedAt)
+
+  +----------+                  +-----------+                   +----------------+
+  |  USERS   | 1            M  |  places   |  1              M |     ORDERS     |
+  +----------+------------------+-----------+-------------------+----------------+
+                                                                        |
+                                                     +------------------|------------------+
+                                                     |        |         |        |         |
+                                                 (OrderID) (Status) (ShippingAddress) (PaymentMethod)
+                                                     PK
+                                                     |        |         |        |         |
+                                              (TotalAmount) (CreatedAt) (PaymentVerified) (PaymentReference)
+                                                                                           |
+                                                                                    (TrackingNumber)
+
+
+  +----------+                  +-----------+                   +----------------+
+  |  USERS   | 1            M  |    has    |  1              M |   CART_ITEMS   |
+  +----------+------------------+-----------+-------------------+----------------+
+                                                                        |
+                                                                 +------|------+
+                                                                 |             |
+                                                            (CartItemID)   (Quantity)
+                                                                 PK
+
+
+  +----------+                  +------------+                   +----------------+
+  | PRODUCTS | 1            M  | added_to   |  1              M |   CART_ITEMS   |
+  +----------+------------------+------------+-------------------+----------------+
+
+
+  +----------+                  +------------+                   +----------------+
+  | PRODUCTS | 1            M  | included_in |  1              M | ORDER_DETAILS  |
+  +----------+------------------+------------+-------------------+----------------+
+                                                                        |
+                                                                 +------|------+
+                                                                 |      |      |
+                                                           (OrderDetailID) (Quantity)
+                                                                 PK      |
+                                                                      (Price)
+
+
+  +----------+                  +------------+                   +----------------+
+  |  ORDERS  | 1            M  |  contains  |  1              M | ORDER_DETAILS  |
+  +----------+------------------+------------+-------------------+----------------+
+
+
+  +----------+                  +------------+                   +----------------+
+  |  ORDERS  | 1            M  |   tracks   |  1              M | ORDER_HISTORY  |
+  +----------+------------------+------------+-------------------+----------------+
+                                                                        |
+                                                                 +------|------+
+                                                                 |      |      |
+                                                              (HistoryID) (OldStatus)
+                                                                 PK      |      |
+                                                                      (NewStatus) (ChangedAt)
+```
+
+## Traditional Peter Chen Notation Legend
+
+In the diagram above:
+- **Rectangles** represent entities (USERS, PRODUCTS, ORDERS, etc.)
+- **Ovals/Parentheses** represent attributes (UserID, Name, Email, etc.)
+- **Diamonds** represent relationships (places, has, added_to, etc.)
+- **Lines** connect entities to relationships and entities to attributes
+- **Cardinalities** are shown as "1" and "M" (for "many") at the connection points
+
+Primary keys (PK) are indicated below the respective attributes.
+
+This follows the classical Peter Chen ERD notation where:
+- Each entity is connected to its attributes
+- Relationships are represented as diamonds between entities
+- The diagram shows both the structure and the cardinality of relationships
 
 ## Alternative Textual Representation
 
