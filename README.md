@@ -205,11 +205,6 @@ The frontend is a React application with the following routes:
 - `/admin/orders`: Admin orders management
 - `/admin/reports`: Admin sales reports
 
-## Authors
-
-- [Author Name 1](https://github.com/author1)
-- [Author Name 2](https://github.com/author2)
-
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
