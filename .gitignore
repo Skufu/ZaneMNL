@@ -1,18 +1,4 @@
-# OS
-.DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Environment
-.env
-.env.local
-
-# Go
+# === Go ===
 *.exe
 *.exe~
 *.dll
@@ -21,3 +7,30 @@ Thumbs.db
 *.test
 *.out
 vendor/
+go.work
+go.work.sum
+bin/
+
+# === Node ===
+node_modules/
+.pnp
+.pnp.js
+dist/
+build/
+coverage/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# === General ===
+.env
+.env.local
+.env.*.local
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
